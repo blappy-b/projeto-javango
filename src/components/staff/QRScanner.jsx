@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { Html5QrcodeScanner } from 'html5-qrcode';
+import { createSupabaseBrowser } from '@/lib/supabase';
 
 export default function QRScanner() {
   const [scanResult, setScanResult] = useState(null); // null, success, error
@@ -20,10 +21,17 @@ export default function QRScanner() {
       setLoading(true);
 
       try {
+        const supabase = createSupabaseBrowser();
+        const { data: { user } } = await supabase.auth.getUser();
+
+        if (!user) {
+          throw new Error('Usuário não autenticado');
+        }
+
         // Chama nossa API
         const res = await fetch('/api/tickets/validate', {
           method: 'POST',
-          body: JSON.stringify({ qrToken: decodedText, staffId: 'user-uuid-atual' }), // Pegar user real do Auth
+          body: JSON.stringify({ qrToken: decodedText }),
           headers: { 'Content-Type': 'application/json' }
         });
 
