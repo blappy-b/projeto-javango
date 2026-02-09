@@ -12,9 +12,9 @@ export default function EventCard({ event }) {
     <Link 
           href={`/events/${event.id}`} className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow overflow-hidden border border-gray-100 flex flex-col h-full">
       {/* Área da Imagem (Placeholder se não tiver) */}
-      <div className="h-48 bg-linear-to-r from-red-primary to-dark-gray flex items-center justify-center text-white">
+      <div className="h-48 bg-linear-to-r from-red-primary to-dark-gray flex items-center justify-center text-white relative">
         {event.image_url ? (
-          <Image src={event.image_url} alt={event.title} className="w-full h-full object-cover" />
+          <Image src={event.image_url} alt={event.title} fill className="object-cover" />
         ) : null}
       </div>
 

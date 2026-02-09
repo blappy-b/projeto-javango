@@ -6,7 +6,7 @@ import Link from "next/link";
 import { MoreHorizontal, Edit, Trash2, Loader2, Eye } from "lucide-react";
 import { deleteEventAction } from "@/actions/events";
 
-export default function EventActions({ eventId }) {
+export default function EventActions({ eventId, isPastEvent = false }) {
   const btnRef = useRef(null);
   const [isOpen, setIsOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -82,13 +82,19 @@ export default function EventActions({ eventId }) {
                 <Eye size={16} /> Ver Página Pública
               </Link>
 
-              <Link
-                href={`/admin/events/${eventId}/edit`}
-                className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600"
-                onClick={() => setIsOpen(false)}
-              >
-                <Edit size={16} /> Editar Evento
-              </Link>
+              {isPastEvent ? (
+                <div className="flex items-center gap-2 px-4 py-2 text-sm text-gray-400 cursor-not-allowed" title="Eventos passados não podem ser editados">
+                  <Edit size={16} /> Editar Evento (bloqueado)
+                </div>
+              ) : (
+                <Link
+                  href={`/admin/events/${eventId}/edit`}
+                  className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-blue-600"
+                  onClick={() => setIsOpen(false)}
+                >
+                  <Edit size={16} /> Editar Evento
+                </Link>
+              )}
 
               <button
                 onClick={handleDelete}

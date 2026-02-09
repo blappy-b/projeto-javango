@@ -1,15 +1,15 @@
 "use server";
 
-import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createSupabaseActionClient } from "@/utils/createSupabaseActionClient";
+import { getSupabaseAdmin } from "@/lib/supabase";
 
 // Schema de validação
 const eventSchema = z.object({
   title: z.string().min(3, "O título precisa ter pelo menos 3 letras"),
   description: z.string().optional(),
+  image_url: z.string().url("URL de imagem inválida").optional().or(z.literal("")),
   location: z.string().min(3, "Local é obrigatório"),
   start_date: z.string(),
   end_date: z.string(),
@@ -25,9 +25,50 @@ const eventSchema = z.object({
     .min(1, "Crie pelo menos um tipo de ingresso"),
 });
 
+
+
+const EVENT_IMAGE_BUCKET = process.env.SUPABASE_EVENT_IMAGES_BUCKET || "event-images";
+
+function sanitizeFileName(fileName = "image") {
+  return fileName.replace(/[^a-zA-Z0-9._-]/g, "-");
+}
+
+async function uploadEventImage(file, userId) {
+  if (!file || typeof file === "string" || file.size === 0) return null;
+
+  if (!file.type?.startsWith("image/")) {
+    throw new Error("O arquivo enviado precisa ser uma imagem.");
+  }
+
+  const maxSizeBytes = 5 * 1024 * 1024;
+  if (file.size > maxSizeBytes) {
+    throw new Error("A imagem deve ter no máximo 5MB.");
+  }
+
+  const supabaseAdmin = getSupabaseAdmin();
+  const filePath = `events/${userId}/${Date.now()}-${sanitizeFileName(file.name)}`;
+
+  const { error: uploadError } = await supabaseAdmin.storage
+    .from(EVENT_IMAGE_BUCKET)
+    .upload(filePath, file, {
+      contentType: file.type,
+      upsert: true,
+    });
+
+  if (uploadError) {
+    throw new Error("Não foi possível enviar a imagem do evento.");
+  }
+
+  const { data } = supabaseAdmin.storage
+    .from(EVENT_IMAGE_BUCKET)
+    .getPublicUrl(filePath);
+
+  return data.publicUrl;
+}
 const updateEventSchema = z.object({
   title: z.string().min(3),
   description: z.string().optional(),
+  image_url: z.string().url("URL de imagem inválida").optional().or(z.literal("")),
   location: z.string().min(3),
   start_date: z.string(),
   end_date: z.string(),
@@ -73,6 +114,7 @@ export async function createEventAction(prevState, formData) {
   const rawData = {
     title: formData.get("title"),
     description: formData.get("description") || undefined,
+    image_url: formData.get("image_url") || undefined,
     location: formData.get("location"),
     start_date: formData.get("start_date"),
     end_date: formData.get("end_date"),
@@ -88,6 +130,15 @@ export async function createEventAction(prevState, formData) {
   const { batches, ...eventData } = validated.data;
 
   try {
+    const uploadedImageUrl = await uploadEventImage(
+      formData.get("image_file"),
+      session.user.id
+    );
+
+    if (uploadedImageUrl) {
+      eventData.image_url = uploadedImageUrl;
+    }
+
     // 3. Criar o Evento
     const { data: event, error: eventError } = await supabase
       .from("events")
@@ -163,6 +214,7 @@ export async function updateEventAction(eventId, formData) {
   const rawData = {
     title: formData.get("title"),
     description: formData.get("description"),
+    image_url: formData.get("image_url") || undefined,
     location: formData.get("location"),
     start_date: formData.get("start_date"),
     end_date: formData.get("end_date"),
@@ -177,6 +229,30 @@ export async function updateEventAction(eventId, formData) {
   const { batches, ...eventData } = validated.data;
 
   try {
+    const { data: existingEvent, error: existingEventError } = await supabase
+      .from("events")
+      .select("id, end_date")
+      .eq("id", eventId)
+      .eq("organizer_id", session.user.id)
+      .single();
+
+    if (existingEventError || !existingEvent) {
+      throw new Error("Evento não encontrado ou sem permissão.");
+    }
+
+    if (new Date(existingEvent.end_date) < new Date()) {
+      throw new Error("Eventos passados não podem ser editados.");
+    }
+
+    const uploadedImageUrl = await uploadEventImage(
+      formData.get("image_file"),
+      session.user.id
+    );
+
+    if (uploadedImageUrl) {
+      eventData.image_url = uploadedImageUrl;
+    }
+
     // 1. Atualiza evento
     const { data: updated } = await supabase
       .from("events")
@@ -249,4 +325,3 @@ export async function updateEventAction(eventId, formData) {
     return { error: error.message || "Erro ao atualizar evento." };
   }
 }
-

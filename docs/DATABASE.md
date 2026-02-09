@@ -112,3 +112,5 @@ Os valores possíveis de cada enum não foram incluídos na exportação enviada
 
 - Este documento é **descritivo** do estado atual e não substitui migrations SQL versionadas.
 - O schema original recebido continha o aviso de contexto (“not meant to be run”), então a ordem de criação e constraints pode exigir ajustes em uma execução real.
+
+- `events.image_url` também pode armazenar URLs de arquivos enviados via Supabase Storage (bucket público `event-images` por padrão).

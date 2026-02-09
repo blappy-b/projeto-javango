@@ -62,7 +62,16 @@ export default async function EventDetailsPage({ params }) {
     <div className="min-h-screen bg-gray-50 pb-20">
       {/* Hero / Header (Imagem de Fundo Simulada) */}
       <div className="h-64 md:h-80 bg-slate-900 relative flex items-center justify-center overflow-hidden">
-        <div className="absolute inset-0 opacity-30 bg-[url('https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?q=80&w=1000')] bg-cover bg-center" />
+        {event.image_url ? (
+          <Image
+            src={event.image_url}
+            alt={event.title}
+            fill
+            className="absolute inset-0 object-cover opacity-40"
+          />
+        ) : (
+          <div className="absolute inset-0 opacity-30 bg-[url('https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?q=80&w=1000')] bg-cover bg-center" />
+        )}
         <div className="absolute inset-0 bg-linear-to-t from-gray-900 to-transparent" />
 
         <div className="relative z-10 text-center px-4 max-w-4xl">

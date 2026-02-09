@@ -19,6 +19,29 @@ export default async function EditEventPage({ params }) {
     return notFound();
   }
 
+  const isPastEvent = new Date(event.end_date) < new Date();
+
+  if (isPastEvent) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-4">
+          <Link
+            href="/admin/events"
+            className="p-2 hover:bg-gray-100 rounded-full transition"
+          >
+            <ArrowLeft size={20} className="text-gray-600" />
+          </Link>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Edição Bloqueada</h1>
+            <p className="text-gray-500 text-sm">
+              O evento &quot;{event.title}&quot; já aconteceu e não pode mais ser editado.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
