@@ -20,6 +20,7 @@ import { updateEventAction } from "@/actions/events";
 const formSchema = z.object({
   title: z.string().min(3, "Título obrigatório"),
   description: z.string().optional(),
+  image_url: z.string().url("URL de imagem inválida").optional().or(z.literal("")),
   location: z.string().min(3, "Local obrigatório"),
   start_date: z.string().min(1, "Data de início obrigatória"),
   end_date: z.string().min(1, "Data de fim obrigatória"),
@@ -37,6 +38,7 @@ const formSchema = z.object({
 
 export default function CreateEventForm({ initialData = null }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedImageFile, setSelectedImageFile] = useState(null);
   const router = useRouter();
 
   const isEditMode = !!initialData;
@@ -52,6 +54,7 @@ export default function CreateEventForm({ initialData = null }) {
       ? {
           title: initialData.title,
           description: initialData.description || "",
+          image_url: initialData.image_url || "",
           location: initialData.location,
           start_date: new Date(initialData.start_date)
             .toISOString()
@@ -68,6 +71,7 @@ export default function CreateEventForm({ initialData = null }) {
         }
       : {
           // Valores padrão para criar novo
+          image_url: "",
           batches: [
             {
               name: "Ingresso Padrão",
@@ -94,6 +98,10 @@ export default function CreateEventForm({ initialData = null }) {
       formData.append("title", data.title);
       formData.append("description", data.description || "");
       formData.append("location", data.location);
+      formData.append("image_url", data.image_url || "");
+      if (selectedImageFile) {
+        formData.append("image_file", selectedImageFile);
+      }
       formData.append("start_date", data.start_date);
       formData.append("end_date", data.end_date);
 
@@ -168,6 +176,40 @@ export default function CreateEventForm({ initialData = null }) {
               rows={3}
               className="mt-1 w-full p-2 border rounded-md"
             />
+          </div>
+
+
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-gray-700">
+              URL da Imagem de Capa
+            </label>
+            <input
+              {...register("image_url")}
+              className="mt-1 w-full p-2 border rounded-md"
+              placeholder="https://..."
+            />
+            {errors.image_url && (
+              <span className="text-red-500 text-xs">
+                {errors.image_url.message}
+              </span>
+            )}
+          </div>
+
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-gray-700">
+              Ou envie uma imagem local
+            </label>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(event) =>
+                setSelectedImageFile(event.target.files?.[0] || null)
+              }
+              className="mt-1 w-full p-2 border rounded-md bg-white"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Se enviar arquivo local, ele terá prioridade sobre a URL.
+            </p>
           </div>
 
           <div className="md:col-span-2">

@@ -101,7 +101,7 @@ export default async function AdminEventsPage() {
                     </td>
 
                     <td className="px-6 py-4 text-right">
-                      <EventActions eventId={event.id} />
+                      <EventActions eventId={event.id} isPastEvent={new Date(event.end_date) < new Date()} />
                     </td>
                   </tr>
                 )
