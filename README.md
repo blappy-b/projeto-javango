@@ -34,3 +34,4 @@ npm run build
 - Revisão funcional: `docs/PROJECT_REVIEW.md`
 - PDR: `docs/PDR.md`
 - ADRs: `docs/adr/0001-stack-custo-zero.md`, `docs/adr/0002-precificacao-com-repasse.md`
+- Banco de dados (estado atual): `docs/DATABASE.md`
