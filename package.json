@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "node --test \"src/**/*.test.js\"",
+    "test:unit": "node --test \"src/lib/*.test.js\" \"src/utils/*.test.js\"",
+    "test:integration": "node --test \"src/app/api/**/*.integration.test.js\""
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
