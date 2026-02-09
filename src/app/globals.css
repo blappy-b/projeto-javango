@@ -1,0 +1,18 @@
+@import "tailwindcss";
+
+/* Opcional: Um fundo levemente cinza para não cansar a vista */
+@layer base {
+  body {
+    @apply bg-gray-50 text-dark-gray;
+  }
+
+  button {
+    @apply cursor-pointer;
+  }
+}
+
+@theme {
+  --color-red-primary: #8c0b0d;
+  --color-dark-gray: #1a1a1a;
+  --color-medium-gray: #292929;
+}
