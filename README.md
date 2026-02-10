@@ -7,6 +7,7 @@ Plataforma para gestão de eventos da escola de música, venda de ingressos e va
 - Gestão de eventos e lotes de ingressos.
 - Checkout com Mercado Pago.
 - Emissão e validação de ingresso (com bloqueio de reuso).
+- Webhook de pagamento idempotente (ordem só vira `approved` após emissão de ingressos) e expiração automática de pedidos `pending` antigos.
 - Cálculo de preço com repasse de taxa da escola + taxa Mercado Pago.
 
 ## Stack

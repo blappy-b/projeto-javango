@@ -108,6 +108,13 @@ O schema referencia os tipos:
 
 Os valores possíveis de cada enum não foram incluídos na exportação enviada (somente defaults observados: `customer`, `draft`, `pending`, `valid`).
 
+## Regras operacionais de pedidos e estoque
+
+- A ordem só deve ser marcada como `approved` após criação bem-sucedida dos ingressos na tabela `tickets`.
+- O webhook de pagamento usa atualização idempotente para evitar dupla contagem em reentregas do Mercado Pago.
+- Em caso de falha após incrementar `ticket_batches.sold_quantity`, o sistema executa rollback via RPC `decrement_ticket_sold`.
+- Pedidos `pending` antigos podem ser expirados com a RPC `expire_stale_pending_orders(p_minutes integer default 30)`, marcando-os como `cancelled`.
+
 ## Observações
 
 - Este documento é **descritivo** do estado atual e não substitui migrations SQL versionadas.
