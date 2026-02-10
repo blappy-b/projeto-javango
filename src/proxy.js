@@ -64,6 +64,8 @@ export async function proxy(request) {
   // --- REGRA 1: Rotas Públicas (Login, Cadastro, Webhooks, Assets) ---
   // Se não fizermos isso, o loop de redirecionamento pode quebrar o site
   if (
+    path === '/' ||
+    path.startsWith('/events') ||
     path.startsWith('/login') || 
     path.startsWith('/register') || 
     path.startsWith('/api/webhooks') ||

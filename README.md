@@ -10,6 +10,11 @@ Plataforma para gestão de eventos da escola de música, venda de ingressos e va
 - Webhook de pagamento idempotente (ordem só vira `approved` após emissão de ingressos) e expiração automática de pedidos `pending` antigos.
 - Cálculo de preço com repasse de taxa da escola + taxa Mercado Pago.
 
+## Regras de acesso
+- A listagem de eventos (`/`) e a página de detalhes do evento (`/events/:id`) são públicas.
+- Login/cadastro é exigido apenas quando o aluno tenta finalizar a compra ou acessar `Meus Ingressos` (`/my-tickets`).
+- Ao clicar em `Finalizar Compra` sem sessão ativa, o aluno é redirecionado para `/login?next=/events/:id`.
+
 ## Stack
 - Next.js (App Router)
 - Supabase (Auth + Postgres)
