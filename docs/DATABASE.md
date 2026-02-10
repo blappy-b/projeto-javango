@@ -1,123 +1,100 @@
 # Banco de Dados (Supabase/Postgres)
 
-Este documento descreve o estado **atual** do banco de dados com base na cópia do Schema Visualizer do Supabase enviada no contexto do projeto.
+## Visão Geral
+- Banco: **PostgreSQL via Supabase**.
+- Autenticação: gerenciada por `auth.users`.
+- Financeiro: valores monetários em **inteiros (centavos)** para evitar arredondamento (`price_cents`, `total_amount_cents`, etc.).
+- Segurança: **RLS (Row Level Security)** habilitado nas tabelas públicas.
 
-## Visão geral
-
-O modelo está centrado em cinco tabelas:
-
-- `profiles`: dados de perfil dos usuários autenticados.
-- `events`: eventos cadastrados pelos organizadores.
-- `ticket_batches`: lotes de ingressos por evento.
-- `orders`: pedidos de compra de ingressos.
-- `tickets`: ingressos emitidos por pedido/lote, com validação por QR.
-
-## Tabelas e campos
+## Tabelas Principais
 
 ### `public.profiles`
+Extensão de `auth.users` para RBAC (1:1).
 
-Representa o perfil da aplicação para cada usuário do Supabase Auth.
-
-- `id` (`uuid`, PK, FK -> `auth.users.id`)
-- `full_name` (`text`, opcional)
-- `email` (`text`, opcional)
-- `role` (`user_role`, default: `customer`)
-- `created_at` (`timestamptz`, default: `now()`)
-- `updated_at` (`timestamptz`, default: `now()`)
+- `id uuid` PK/FK -> `auth.users(id)`
+- `email text`
+- `role text default 'student'` (`admin`, `staff`, `student`)
+- `created_at timestamptz default timezone('utc', now())`
 
 ### `public.events`
+Shows, recitais e apresentações.
 
-Cadastro de eventos.
-
-- `id` (`uuid`, PK, default: `uuid_generate_v4()`)
-- `title` (`text`, obrigatório)
-- `description` (`text`, opcional)
-- `location` (`text`, opcional)
-- `start_date` (`timestamptz`, obrigatório)
-- `end_date` (`timestamptz`, opcional)
-- `image_url` (`text`, opcional)
-- `status` (`event_status`, default: `draft`)
-- `organizer_id` (`uuid`, FK -> `public.profiles.id`)
-- `created_at` (`timestamptz`, default: `now()`)
-- `updated_at` (`timestamptz`, default: `now()`)
+- `id uuid` PK
+- `organizer_id uuid` FK -> `auth.users(id)`
+- `title text not null`
+- `description text`
+- `location text`
+- `start_date timestamptz not null`
+- `end_date timestamptz not null`
+- `status text default 'draft'` (`draft`, `published`, `cancelled`, `ended`)
+- `created_at timestamptz default timezone('utc', now())`
 
 ### `public.ticket_batches`
+Regras de preço e estoque por lote.
 
-Lotes de ingressos por evento.
-
-- `id` (`uuid`, PK, default: `uuid_generate_v4()`)
-- `event_id` (`uuid`, obrigatório, FK -> `public.events.id`)
-- `name` (`text`, obrigatório)
-- `price_cents` (`integer`, obrigatório)
-- `service_fee_percent` (`numeric`, default: `0`)
-- `min_service_fee_cents` (`integer`, default: `0`)
-- `total_quantity` (`integer`, obrigatório)
-- `sold_quantity` (`integer`, default: `0`)
-- `is_active` (`boolean`, default: `false`)
-- `start_date` (`timestamptz`, opcional)
-- `end_date` (`timestamptz`, opcional)
-- `created_at` (`timestamptz`, default: `now()`)
+- `id uuid` PK
+- `event_id uuid` FK -> `public.events(id)`
+- `name text not null`
+- `price_cents integer not null`
+- `service_fee_percent numeric(5,2) default 0`
+- `min_service_fee_cents integer default 0`
+- `total_quantity integer not null`
+- `sold_quantity integer default 0`
+- `is_active boolean default true`
+- `created_at timestamptz default timezone('utc', now())`
 
 ### `public.orders`
+Carrinho/checkout com snapshot imutável dos itens.
 
-Pedidos de compra.
-
-- `id` (`uuid`, PK, default: `uuid_generate_v4()`)
-- `user_id` (`uuid`, FK -> `public.profiles.id`)
-- `event_id` (`uuid`, FK -> `public.events.id`)
-- `total_amount_cents` (`integer`, obrigatório)
-- `mp_preference_id` (`text`, opcional)
-- `mp_payment_id` (`text`, opcional)
-- `status` (`order_status`, default: `pending`)
-- `created_at` (`timestamptz`, default: `now()`)
-- `updated_at` (`timestamptz`, default: `now()`)
-- `items_snapshot` (`jsonb`, opcional)
+- `id uuid` PK
+- `user_id uuid` FK -> `auth.users(id)`
+- `event_id uuid` FK -> `public.events(id)`
+- `status text default 'pending'` (`pending`, `approved`, `rejected`)
+- `total_amount_cents integer not null`
+- `external_reference text`
+- `items_snapshot jsonb not null`
+- `created_at timestamptz default timezone('utc', now())`
+- `updated_at timestamptz default timezone('utc', now())`
 
 ### `public.tickets`
+Ingresso final (QR) criado após aprovação.
 
-Ingressos individuais gerados a partir dos pedidos.
+- `id uuid` PK (conteúdo do QR)
+- `event_id uuid` FK -> `public.events(id)`
+- `batch_id uuid` FK -> `public.ticket_batches(id)`
+- `user_id uuid` FK -> `auth.users(id)`
+- `guest_name text`
+- `status text default 'valid'` (`valid`, `used`, `refunded`)
+- `paid_price_cents integer not null`
+- `paid_fee_cents integer not null`
+- `purchased_at timestamptz default timezone('utc', now())`
+- `used_at timestamptz`
 
-- `id` (`uuid`, PK, default: `uuid_generate_v4()`)
-- `order_id` (`uuid`, obrigatório, FK -> `public.orders.id`)
-- `batch_id` (`uuid`, obrigatório, FK -> `public.ticket_batches.id`)
-- `owner_name` (`text`, obrigatório)
-- `qr_hash` (`text`, único)
-- `status` (`ticket_status`, default: `valid`)
-- `validated_at` (`timestamptz`, opcional)
-- `validated_by` (`uuid`, FK -> `public.profiles.id`)
-- `created_at` (`timestamptz`, default: `now()`)
+## Automações e Funções
 
-## Relacionamentos
+### Trigger de criação automática de perfil
+- Função: `public.handle_new_user()`
+- Trigger: `on_auth_user_created` em `auth.users`
+- Efeito: cria `public.profiles` com role inicial `student`.
 
-- `profiles (1) -> (N) events` via `events.organizer_id`
-- `events (1) -> (N) ticket_batches` via `ticket_batches.event_id`
-- `profiles (1) -> (N) orders` via `orders.user_id`
-- `events (1) -> (N) orders` via `orders.event_id`
-- `orders (1) -> (N) tickets` via `tickets.order_id`
-- `ticket_batches (1) -> (N) tickets` via `tickets.batch_id`
-- `profiles (1) -> (N) tickets validados` via `tickets.validated_by`
+### RPC de estoque
+- Função: `public.increment_ticket_sold(batch_id_input uuid, quantity_input int default 1)`
+- Uso: webhook de pagamento para incremento de `sold_quantity`.
 
-## Tipos customizados (enums)
+## RLS (Resumo)
 
-O schema referencia os tipos:
-
-- `user_role`
-- `event_status`
-- `order_status`
-- `ticket_status`
-
-Os valores possíveis de cada enum não foram incluídos na exportação enviada (somente defaults observados: `customer`, `draft`, `pending`, `valid`).
-
-## Regras operacionais de pedidos e estoque
-
-- A ordem só deve ser marcada como `approved` após criação bem-sucedida dos ingressos na tabela `tickets`.
-- O webhook de pagamento usa atualização idempotente para evitar dupla contagem em reentregas do Mercado Pago.
-- Em caso de falha após incrementar `ticket_batches.sold_quantity`, o sistema executa rollback via RPC `decrement_ticket_sold`.
-- Pedidos `pending` antigos podem ser expirados com a RPC `expire_stale_pending_orders(p_minutes integer default 30)`, marcando-os como `cancelled`.
-
-## Observações
-
-- Este documento é **descritivo** do estado atual e não substitui migrations SQL versionadas.
-- O schema original recebido continha o aviso de contexto (“not meant to be run”), então a ordem de criação e constraints pode exigir ajustes em uma execução real.
-
-- `events.image_url` também pode armazenar URLs de arquivos enviados via Supabase Storage (bucket público `event-images` por padrão).
+- `profiles`
+  - SELECT: próprio usuário ou `admin/staff`.
+- `events`
+  - SELECT: eventos `published`.
+  - INSERT/UPDATE/DELETE: apenas `admin`.
+- `ticket_batches`
+  - SELECT: lotes ativos (`is_active = true`).
+  - INSERT/UPDATE/DELETE: apenas `admin`.
+- `orders`
+  - SELECT: próprio dono (`user_id = auth.uid()`).
+  - INSERT: próprio dono.
+  - UPDATE: feito por fluxo de serviço/webhook.
+- `tickets`
+  - SELECT: próprio dono.
+  - UPDATE (check-in): `staff` e `admin`.

@@ -46,6 +46,8 @@ O arquivo `20260209144000_initial_schema.sql` foi ajustado para ser **idempotent
 - `create index if not exists`
 - `drop trigger if exists` antes de recriar trigger
 
+- índices da tabela `tickets` agora só são criados quando as colunas alvo existem (protege cenários de drift como `column "user_id" does not exist`)
+
 Assim, ao reaplicar a migration, o push não quebra por objetos já existentes.
 
 Se seu ambiente remoto já está com schema criado manualmente, rode novamente:
@@ -55,3 +57,9 @@ supabase db push
 ```
 
 Se ainda houver divergência de histórico, valide as versões em `supabase_migrations.schema_migrations` e ajuste o estado antes de novas migrations.
+
+
+## Migração de alinhamento do schema atual
+- Arquivo: `supabase/migrations/20260210203000_align_schema_to_current_db_spec.sql`
+- Objetivo: alinhar o banco ao modelo atual do projeto (RBAC com `student/staff/admin`, status em `text`, FKs para `auth.users`, trigger `handle_new_user`, RPC de estoque e RLS).
+- Observação: a migration usa abordagens defensivas (`if exists` / `if not exists`) para reduzir falhas em ambientes com drift de schema.

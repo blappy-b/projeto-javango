@@ -158,10 +158,49 @@ create table if not exists public.tickets (
   created_at timestamptz not null default now()
 );
 
-create index if not exists idx_tickets_user on public.tickets (user_id);
-create index if not exists idx_tickets_event on public.tickets (event_id);
-create index if not exists idx_tickets_batch on public.tickets (batch_id);
-create index if not exists idx_tickets_status on public.tickets (status);
+do $$
+begin
+  if exists (
+    select 1
+      from information_schema.columns
+     where table_schema = 'public'
+       and table_name = 'tickets'
+       and column_name = 'user_id'
+  ) then
+    create index if not exists idx_tickets_user on public.tickets (user_id);
+  end if;
+
+  if exists (
+    select 1
+      from information_schema.columns
+     where table_schema = 'public'
+       and table_name = 'tickets'
+       and column_name = 'event_id'
+  ) then
+    create index if not exists idx_tickets_event on public.tickets (event_id);
+  end if;
+
+  if exists (
+    select 1
+      from information_schema.columns
+     where table_schema = 'public'
+       and table_name = 'tickets'
+       and column_name = 'batch_id'
+  ) then
+    create index if not exists idx_tickets_batch on public.tickets (batch_id);
+  end if;
+
+  if exists (
+    select 1
+      from information_schema.columns
+     where table_schema = 'public'
+       and table_name = 'tickets'
+       and column_name = 'status'
+  ) then
+    create index if not exists idx_tickets_status on public.tickets (status);
+  end if;
+end
+$$;
 
 -- RPC usada no webhook de pagamento
 create or replace function public.increment_ticket_sold(batch_id_input uuid, quantity_input integer)
