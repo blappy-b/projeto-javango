@@ -59,6 +59,18 @@ supabase db push
 Se ainda houver divergência de histórico, valide as versões em `supabase_migrations.schema_migrations` e ajuste o estado antes de novas migrations.
 
 
+
+### Erro no `supabase db push`: `cannot remove parameter defaults from existing function (SQLSTATE 42P13)`
+Esse erro ocorre quando uma migration usa `create or replace function` para uma função já existente, mas com assinatura incompatível em relação a parâmetros com `default`.
+
+Boas práticas para evitar:
+- Se a função já existe com `default` em algum parâmetro, **preserve o `default`** na nova definição.
+- Se você realmente precisa remover/adicionar defaults incompatíveis, prefira:
+  1. `drop function ...` com assinatura exata, e depois
+  2. recriar a função com a nova assinatura (avaliando impacto em chamadas RPC e dependências).
+
+Neste projeto, `public.increment_ticket_sold` deve manter `quantity_input ... default 1` em todas as migrations onde for redefinida.
+
 ## Migração de alinhamento do schema atual
 - Arquivo: `supabase/migrations/20260210203000_align_schema_to_current_db_spec.sql`
 - Objetivo: alinhar o banco ao modelo atual do projeto (RBAC com `student/staff/admin`, status em `text`, FKs para `auth.users`, trigger `handle_new_user`, RPC de estoque e RLS).

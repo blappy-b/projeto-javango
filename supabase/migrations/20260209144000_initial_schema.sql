@@ -203,7 +203,7 @@ end
 $$;
 
 -- RPC usada no webhook de pagamento
-create or replace function public.increment_ticket_sold(batch_id_input uuid, quantity_input integer)
+create or replace function public.increment_ticket_sold(batch_id_input uuid, quantity_input integer default 1)
 returns void
 language plpgsql
 security definer
