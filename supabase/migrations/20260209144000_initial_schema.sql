@@ -2,10 +2,49 @@
 create extension if not exists "pgcrypto";
 
 -- Enums
-create type public.user_role as enum ('customer', 'staff', 'admin');
-create type public.event_status as enum ('draft', 'published', 'cancelled');
-create type public.order_status as enum ('pending', 'approved', 'rejected', 'cancelled');
-create type public.ticket_status as enum ('valid', 'used', 'cancelled');
+do $$
+begin
+  if not exists (
+    select 1
+      from pg_type t
+      join pg_namespace n on n.oid = t.typnamespace
+     where n.nspname = 'public'
+       and t.typname = 'user_role'
+  ) then
+    create type public.user_role as enum ('customer', 'staff', 'admin');
+  end if;
+
+  if not exists (
+    select 1
+      from pg_type t
+      join pg_namespace n on n.oid = t.typnamespace
+     where n.nspname = 'public'
+       and t.typname = 'event_status'
+  ) then
+    create type public.event_status as enum ('draft', 'published', 'cancelled');
+  end if;
+
+  if not exists (
+    select 1
+      from pg_type t
+      join pg_namespace n on n.oid = t.typnamespace
+     where n.nspname = 'public'
+       and t.typname = 'order_status'
+  ) then
+    create type public.order_status as enum ('pending', 'approved', 'rejected', 'cancelled');
+  end if;
+
+  if not exists (
+    select 1
+      from pg_type t
+      join pg_namespace n on n.oid = t.typnamespace
+     where n.nspname = 'public'
+       and t.typname = 'ticket_status'
+  ) then
+    create type public.ticket_status as enum ('valid', 'used', 'cancelled');
+  end if;
+end
+$$;
 
 -- Função padrão para updated_at
 create or replace function public.set_updated_at()
@@ -19,7 +58,7 @@ end;
 $$;
 
 -- Profiles (espelho de auth.users)
-create table public.profiles (
+create table if not exists public.profiles (
   id uuid primary key references auth.users (id) on delete cascade,
   full_name text,
   email text,
@@ -28,12 +67,13 @@ create table public.profiles (
   updated_at timestamptz not null default now()
 );
 
+drop trigger if exists trg_profiles_set_updated_at on public.profiles;
 create trigger trg_profiles_set_updated_at
 before update on public.profiles
 for each row execute procedure public.set_updated_at();
 
 -- Eventos
-create table public.events (
+create table if not exists public.events (
   id uuid primary key default gen_random_uuid(),
   title text not null,
   description text,
@@ -48,16 +88,17 @@ create table public.events (
   constraint events_dates_check check (end_date is null or end_date >= start_date)
 );
 
-create index idx_events_status on public.events (status);
-create index idx_events_start_date on public.events (start_date);
-create index idx_events_organizer on public.events (organizer_id);
+create index if not exists idx_events_status on public.events (status);
+create index if not exists idx_events_start_date on public.events (start_date);
+create index if not exists idx_events_organizer on public.events (organizer_id);
 
+drop trigger if exists trg_events_set_updated_at on public.events;
 create trigger trg_events_set_updated_at
 before update on public.events
 for each row execute procedure public.set_updated_at();
 
 -- Lotes de ingresso
-create table public.ticket_batches (
+create table if not exists public.ticket_batches (
   id uuid primary key default gen_random_uuid(),
   event_id uuid not null references public.events (id) on delete cascade,
   name text not null,
@@ -74,11 +115,11 @@ create table public.ticket_batches (
   constraint ticket_batches_sold_not_gt_total check (sold_quantity <= total_quantity)
 );
 
-create index idx_ticket_batches_event on public.ticket_batches (event_id);
-create index idx_ticket_batches_event_active on public.ticket_batches (event_id, is_active);
+create index if not exists idx_ticket_batches_event on public.ticket_batches (event_id);
+create index if not exists idx_ticket_batches_event_active on public.ticket_batches (event_id, is_active);
 
 -- Pedidos
-create table public.orders (
+create table if not exists public.orders (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references public.profiles (id) on delete restrict,
   event_id uuid not null references public.events (id) on delete restrict,
@@ -91,16 +132,17 @@ create table public.orders (
   updated_at timestamptz not null default now()
 );
 
-create index idx_orders_user on public.orders (user_id);
-create index idx_orders_event on public.orders (event_id);
-create index idx_orders_status on public.orders (status);
+create index if not exists idx_orders_user on public.orders (user_id);
+create index if not exists idx_orders_event on public.orders (event_id);
+create index if not exists idx_orders_status on public.orders (status);
 
+drop trigger if exists trg_orders_set_updated_at on public.orders;
 create trigger trg_orders_set_updated_at
 before update on public.orders
 for each row execute procedure public.set_updated_at();
 
 -- Ingressos
-create table public.tickets (
+create table if not exists public.tickets (
   id uuid primary key default gen_random_uuid(),
   event_id uuid not null references public.events (id) on delete restrict,
   batch_id uuid not null references public.ticket_batches (id) on delete restrict,
@@ -116,10 +158,10 @@ create table public.tickets (
   created_at timestamptz not null default now()
 );
 
-create index idx_tickets_user on public.tickets (user_id);
-create index idx_tickets_event on public.tickets (event_id);
-create index idx_tickets_batch on public.tickets (batch_id);
-create index idx_tickets_status on public.tickets (status);
+create index if not exists idx_tickets_user on public.tickets (user_id);
+create index if not exists idx_tickets_event on public.tickets (event_id);
+create index if not exists idx_tickets_batch on public.tickets (batch_id);
+create index if not exists idx_tickets_status on public.tickets (status);
 
 -- RPC usada no webhook de pagamento
 create or replace function public.increment_ticket_sold(batch_id_input uuid, quantity_input integer)
