@@ -12,11 +12,13 @@ import {
 } from "lucide-react";
 import { formatCurrency, calculateFinalPrice } from "@/utils/price";
 import { buyTicketsBulkAction } from "@/actions/tickets";
+import { createSupabaseBrowser } from "@/lib/supabase";
 
 export default function TicketSelection({ eventId, batches }) {
   const [cart, setCart] = useState({}); // { batchId: quantity }
   const [isProcessing, setIsProcessing] = useState(false);
   const router = useRouter();
+  const supabase = createSupabaseBrowser();
 
   // Função para atualizar quantidade
   const updateQuantity = (batchId, delta, maxAvailable) => {
@@ -53,6 +55,15 @@ export default function TicketSelection({ eventId, batches }) {
   // Dentro de TicketSelection.jsx
 
   const handleCheckout = async () => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      router.push(`/login?next=/events/${eventId}`);
+      return;
+    }
+
     setIsProcessing(true);
 
     const cartItems = Object.entries(cart).map(([batchId, quantity]) => ({
@@ -63,6 +74,7 @@ export default function TicketSelection({ eventId, batches }) {
     const result = await buyTicketsBulkAction(eventId, cartItems);
 
     if (result?.error === "unauthenticated") {
+      setIsProcessing(false);
       router.push(`/login?next=/events/${eventId}`);
       return;
     }
