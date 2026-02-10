@@ -18,6 +18,8 @@ export async function buyTicketsBulkAction(eventId, cartItems) {
   }
 
   try {
+    await supabase.rpc("expire_stale_pending_orders", { p_minutes: 30 });
+
     const orderItems = [];
     let totalOrderCents = 0;
     const mpItems = [];
