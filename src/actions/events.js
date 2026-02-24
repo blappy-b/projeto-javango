@@ -87,18 +87,18 @@ const updateEventSchema = z.object({
 export async function createEventAction(prevState, formData) {
   const supabase = await createSupabaseActionClient();
 
-  // 1. Validar Sessão
+  // 1. Validar Autenticação
   const {
-    data: { session },
-    error: sessionError,
-  } = await supabase.auth.getSession();
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
 
-  if (sessionError) {
-    console.error("Erro ao obter sessão:", sessionError);
-    return { error: "Erro ao validar sessão. Tente novamente." };
+  if (authError) {
+    console.error("Erro ao obter usuário:", authError);
+    return { error: "Erro ao validar autenticação. Tente novamente." };
   }
 
-  if (!session) return { error: "Usuário não autenticado" };
+  if (!user) return { error: "Usuário não autenticado" };
 
   // 2. Parse dos dados (FormData vem cru)
   let batchesParsed;
@@ -132,7 +132,7 @@ export async function createEventAction(prevState, formData) {
   try {
     const uploadedImageUrl = await uploadEventImage(
       formData.get("image_file"),
-      session.user.id
+      user.id
     );
 
     if (uploadedImageUrl) {
@@ -144,7 +144,7 @@ export async function createEventAction(prevState, formData) {
       .from("events")
       .insert({
         ...eventData,
-        organizer_id: session.user.id,
+        organizer_id: user.id,
         status: "published",
       })
       .select()
@@ -181,12 +181,12 @@ export async function createEventAction(prevState, formData) {
 export async function deleteEventAction(eventId) {
   const supabase = await createSupabaseActionClient();
 
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) return { error: "Não autorizado" };
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Não autorizado" };
 
   const { error } = await supabase.rpc("delete_event_if_no_sales", {
     p_event_id: eventId,
-    p_user_id: session.user.id,
+    p_user_id: user.id,
   });
 
   if (error) {
@@ -208,8 +208,8 @@ export async function deleteEventAction(eventId) {
 export async function updateEventAction(eventId, formData) {
   const supabase = await createSupabaseActionClient();
 
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) return { error: "Usuário não autenticado" };
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Usuário não autenticado" };
 
   const rawData = {
     title: formData.get("title"),
@@ -233,7 +233,7 @@ export async function updateEventAction(eventId, formData) {
       .from("events")
       .select("id, end_date")
       .eq("id", eventId)
-      .eq("organizer_id", session.user.id)
+      .eq("organizer_id", user.id)
       .single();
 
     if (existingEventError || !existingEvent) {
@@ -246,7 +246,7 @@ export async function updateEventAction(eventId, formData) {
 
     const uploadedImageUrl = await uploadEventImage(
       formData.get("image_file"),
-      session.user.id
+      user.id
     );
 
     if (uploadedImageUrl) {
@@ -258,7 +258,7 @@ export async function updateEventAction(eventId, formData) {
       .from("events")
       .update(eventData)
       .eq("id", eventId)
-      .eq("organizer_id", session.user.id)
+      .eq("organizer_id", user.id)
       .select("id");
 
     if (!updated?.length) {
