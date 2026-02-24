@@ -34,6 +34,14 @@ export default async function MyTicketsPage({ searchParams }) {
     .eq("user_id", user.id)
     .order("purchased_at", { ascending: false });
 
+  // DEBUG: Log para investigar
+  if (error) {
+    console.error("Erro ao buscar tickets:", error);
+  }
+  console.log("User ID:", user.id);
+  console.log("Tickets encontrados:", tickets?.length ?? 0);
+  console.log("Tickets:", JSON.stringify(tickets, null, 2));
+
   // Mensagem de sucesso vinda do redirecionamento do MP
   const showSuccessMessage = searchParams?.status === 'success';
   const showPendingMessage = searchParams?.status === 'pending';
