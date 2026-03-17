@@ -5,11 +5,22 @@ import { z } from "zod";
 import { createSupabaseActionClient } from "@/utils/createSupabaseActionClient";
 import { getSupabaseAdmin } from "@/lib/supabase";
 
+// Helper para validar URL (compatível com Zod v4)
+const isValidUrl = (value) => {
+  if (!value || value === "") return true;
+  try {
+    new URL(value);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
 // Schema de validação
 const eventSchema = z.object({
   title: z.string().min(3, "O título precisa ter pelo menos 3 letras"),
   description: z.string().optional(),
-  image_url: z.string().url("URL de imagem inválida").optional().or(z.literal("")),
+  image_url: z.string().optional().refine(isValidUrl, { message: "URL de imagem inválida" }),
   location: z.string().min(3, "Local é obrigatório"),
   start_date: z.string(),
   end_date: z.string(),
@@ -68,7 +79,7 @@ async function uploadEventImage(file, userId) {
 const updateEventSchema = z.object({
   title: z.string().min(3),
   description: z.string().optional(),
-  image_url: z.string().url("URL de imagem inválida").optional().or(z.literal("")),
+  image_url: z.string().optional().refine(isValidUrl, { message: "URL de imagem inválida" }),
   location: z.string().min(3),
   start_date: z.string(),
   end_date: z.string(),

@@ -4,23 +4,32 @@ import { useState } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { createEventAction } from "@/actions/events";
 import {
   Loader2,
   Plus,
   Trash2,
   Calendar,
   MapPin,
-  DollarSign,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { updateEventAction } from "@/actions/events";
+import { createEventAction, updateEventAction } from "@/actions/events";
+
+// Helper para validar URL (compatível com Zod v4)
+const isValidUrl = (value) => {
+  if (!value || value === "") return true;
+  try {
+    new URL(value);
+    return true;
+  } catch {
+    return false;
+  }
+};
 
 // Schema do Front (Espelho do Back)
 const formSchema = z.object({
   title: z.string().min(3, "Título obrigatório"),
   description: z.string().optional(),
-  image_url: z.string().url("URL de imagem inválida").optional().or(z.literal("")),
+  image_url: z.string().optional().refine(isValidUrl, { message: "URL de imagem inválida" }),
   location: z.string().min(3, "Local obrigatório"),
   start_date: z.string().min(1, "Data de início obrigatória"),
   end_date: z.string().min(1, "Data de fim obrigatória"),

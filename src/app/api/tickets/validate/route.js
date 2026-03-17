@@ -30,11 +30,28 @@ export async function POST(req) {
       return NextResponse.json({ success: false, message: "Sem permissão" }, { status: 403 });
     }
 
-    const { qrToken } = await req.json();
-    const payload = verifyTicketHash(qrToken);
-    if (!payload) {
+    const body = await req.json();
+    const { qrToken, ticketId } = body;
+
+    // Determine ticket ID from either qrToken or direct ticketId
+    let resolvedTicketId = null;
+
+    if (qrToken) {
+      // QR Code flow
+      const payload = verifyTicketHash(qrToken);
+      if (!payload) {
+        return NextResponse.json(
+          { success: false, message: "QR CODE FALSO OU INVÁLIDO" },
+          { status: 400 }
+        );
+      }
+      resolvedTicketId = payload.tid;
+    } else if (ticketId) {
+      // Manual validation flow
+      resolvedTicketId = ticketId;
+    } else {
       return NextResponse.json(
-        { success: false, message: "QR CODE FALSO OU INVÁLIDO" },
+        { success: false, message: "QR Token ou Ticket ID necessário" },
         { status: 400 }
       );
     }
@@ -42,7 +59,7 @@ export async function POST(req) {
     const { data: ticket, error } = await supabaseAdmin
       .from("tickets")
       .select("*, events(title), ticket_batches(name)")
-      .eq("id", payload.tid)
+      .eq("id", resolvedTicketId)
       .single();
 
     if (error || !ticket) {
@@ -50,6 +67,23 @@ export async function POST(req) {
         { success: false, message: "Ingresso não encontrado no sistema" },
         { status: 404 }
       );
+    }
+
+    // For staff (not admin), verify they are assigned to this event
+    if (profile.role === "staff") {
+      const { data: assignment } = await supabaseAdmin
+        .from("staff_assignments")
+        .select("id")
+        .eq("staff_id", user.id)
+        .eq("event_id", ticket.event_id)
+        .single();
+
+      if (!assignment) {
+        return NextResponse.json(
+          { success: false, message: "Você não tem permissão para validar este evento" },
+          { status: 403 }
+        );
+      }
     }
 
     if (ticket.status === "used") {
@@ -91,3 +125,4 @@ export async function POST(req) {
     return NextResponse.json({ success: false, message: "Erro interno no servidor" }, { status: 500 });
   }
 }
+

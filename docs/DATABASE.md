@@ -64,11 +64,23 @@ Ingresso final (QR) criado após aprovação.
 - `batch_id uuid` FK -> `public.ticket_batches(id)`
 - `user_id uuid` FK -> `auth.users(id)`
 - `guest_name text`
+- `cpf text` — CPF do participante (para validação manual na portaria)
 - `status text default 'valid'` (`valid`, `used`, `refunded`)
 - `paid_price_cents integer not null`
 - `paid_fee_cents integer not null`
 - `purchased_at timestamptz default timezone('utc', now())`
 - `used_at timestamptz`
+- `validated_at timestamptz` — momento da validação
+- `validated_by uuid` FK -> `auth.users(id)` — quem validou
+
+### `public.staff_assignments`
+Vinculação de membros da equipe a eventos específicos.
+
+- `id uuid` PK
+- `staff_id uuid` FK -> `public.profiles(id)` ON DELETE CASCADE
+- `event_id uuid` FK -> `public.events(id)` ON DELETE CASCADE
+- `created_at timestamptz default now()`
+- UNIQUE constraint em `(staff_id, event_id)`
 
 ## Automações e Funções
 
@@ -96,5 +108,8 @@ Ingresso final (QR) criado após aprovação.
   - INSERT: próprio dono.
   - UPDATE: feito por fluxo de serviço/webhook.
 - `tickets`
-  - SELECT: próprio dono.
-  - UPDATE (check-in): `staff` e `admin`.
+  - SELECT: próprio dono OU staff atribuído ao evento.
+  - UPDATE (check-in): `staff` (somente eventos atribuídos) e `admin`.
+- `staff_assignments`
+  - SELECT: próprio staff ou `admin`.
+  - INSERT/DELETE: apenas `admin`.

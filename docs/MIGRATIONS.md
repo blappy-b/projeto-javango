@@ -75,3 +75,11 @@ Neste projeto, `public.increment_ticket_sold` deve manter `quantity_input ... de
 - Arquivo: `supabase/migrations/20260210203000_align_schema_to_current_db_spec.sql`
 - Objetivo: alinhar o banco ao modelo atual do projeto (RBAC com `student/staff/admin`, status em `text`, FKs para `auth.users`, trigger `handle_new_user`, RPC de estoque e RLS).
 - Observação: a migration usa abordagens defensivas (`if exists` / `if not exists`) para reduzir falhas em ambientes com drift de schema.
+
+## Migração de CPF e vinculação de staff
+- Arquivo: `supabase/migrations/20260228000000_add_cpf_and_staff_assignments.sql`
+- Objetivo: adicionar campo `cpf` aos tickets para busca manual na portaria e criar tabela `staff_assignments` para vincular staff a eventos específicos.
+- Alterações:
+  - Coluna `cpf text` em `tickets` (com índices para busca).
+  - Tabela `staff_assignments` com UNIQUE constraint em `(staff_id, event_id)`.
+  - Políticas RLS para staff acessar apenas tickets de eventos atribuídos.

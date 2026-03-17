@@ -32,7 +32,7 @@ const MENU_ITEMS = [
   // --- Contexto do STAFF (Scanner) ---
   {
     label: "Scanner QR",
-    path: "/scanner", // Refere-se a (staff)/scanner
+    path: "/staff", // Refere-se a (staff)/staff
     icon: QrCode,
     allowedRoles: ["staff", "admin"],
   },

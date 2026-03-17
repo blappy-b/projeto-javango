@@ -57,7 +57,7 @@ export default function LoginForm() {
       if (profile?.role === "admin") {
         router.push("/admin"); // Vai para o Dashboard
       } else if (profile?.role === "staff") {
-        router.push("/scanner"); // Vai para o Scanner
+        router.push("/staff"); // Vai para o Scanner
       } else {
         router.push("/"); // Alunos vão para a Home/Vitrine
       }

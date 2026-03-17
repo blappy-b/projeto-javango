@@ -7,9 +7,9 @@ Sistema para escola de música vender ingressos de apresentações de alunos, co
 ### 2.1 Autenticação e perfis
 - Login e cadastro de usuários.
 - Perfis:
-  - `customer` (aluno/família): compra e visualiza ingressos.
-  - `staff`: valida ingresso no evento.
-  - `admin`: cria/edita evento, lotes e acompanha operação.
+  - `student` (aluno/família): compra e visualiza ingressos.
+  - `staff`: valida ingresso no evento (vinculado a eventos específicos).
+  - `admin`: cria/edita evento, lotes, atribui staff e acompanha operação.
 
 ### 2.2 Eventos e ingressos
 - Criação de evento com data, local, descrição.
@@ -30,6 +30,8 @@ Sistema para escola de música vender ingressos de apresentações de alunos, co
 - Validação de autenticidade do token.
 - Bloqueio de reentrada (ticket já usado).
 - Registro de quem validou e quando.
+- **Busca manual (fallback)**: busca por nome ou CPF quando QR code não funciona.
+- Staff é vinculado a eventos específicos (só valida tickets dos eventos atribuídos).
 
 ## 3. Regras de negócio
 - O valor final pago pelo comprador deve considerar:
