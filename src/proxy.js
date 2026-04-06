@@ -69,6 +69,7 @@ export async function proxy(request) {
     path.startsWith('/login') || 
     path.startsWith('/register') || 
     path.startsWith('/api/webhooks') ||
+    path.startsWith('/api/health') || // Health check para manter Supabase ativo
     path.startsWith('/_next') || // Arquivos internos do Next
     path.includes('.') // Arquivos estáticos (imagens, css)
   ) {
