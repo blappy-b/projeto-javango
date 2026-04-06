@@ -18,17 +18,54 @@ jobs:
         run: |
           echo "🔄 Fazendo ping no health check..."
           
-          URL="https://https://projeto-javango.vercel.app/api/health"
+          URL="https://projeto-javango.vercel.app/api/health"
+          echo "📍 URL: $URL"
           
-          # Faz requisição e captura o status HTTP
-          response=$(curl -s -o /dev/null -w "%{http_code}" "$URL")
+          # Tenta até 3 vezes com intervalo de 5 segundos
+          MAX_ATTEMPTS=3
+          ATTEMPT=1
+          SUCCESS=false
           
-          # Verifica se foi bem-sucedido
-          if [ $response -eq 200 ]; then
-            echo "✅ Health check passou! (HTTP $response)"
-            echo "✅ Supabase está ativo e respondendo"
-          else
-            echo "❌ Health check falhou! (HTTP $response)"
+          while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
+            echo "🔄 Tentativa $ATTEMPT de $MAX_ATTEMPTS..."
+            
+            # Faz requisição com timeout e captura status HTTP e exit code
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 "$URL" 2>&1)
+            CURL_EXIT=$?
+            
+            echo "📊 HTTP Status: $HTTP_CODE"
+            echo "🔧 Curl Exit Code: $CURL_EXIT"
+            
+            # Verifica se curl executou com sucesso (exit 0) E retornou 200
+            if [ $CURL_EXIT -eq 0 ] && [ "$HTTP_CODE" = "200" ]; then
+              echo "✅ Health check passou! (HTTP $HTTP_CODE)"
+              echo "✅ Supabase está ativo e respondendo"
+              SUCCESS=true
+              break
+            elif [ $CURL_EXIT -ne 0 ]; then
+              echo "⚠️ Erro no curl (exit code $CURL_EXIT)"
+              case $CURL_EXIT in
+                6) echo "❌ Erro: Não foi possível resolver o host (DNS)" ;;
+                7) echo "❌ Erro: Falha ao conectar ao servidor" ;;
+                28) echo "❌ Erro: Timeout da operação" ;;
+                *) echo "❌ Erro desconhecido do curl" ;;
+              esac
+            else
+              echo "⚠️ Health check retornou HTTP $HTTP_CODE (esperado: 200)"
+            fi
+            
+            # Se não for a última tentativa, aguarda antes de tentar novamente
+            if [ $ATTEMPT -lt $MAX_ATTEMPTS ]; then
+              echo "⏳ Aguardando 5 segundos antes de tentar novamente..."
+              sleep 5
+            fi
+            
+            ATTEMPT=$((ATTEMPT + 1))
+          done
+          
+          # Se todas as tentativas falharam, encerra com erro
+          if [ "$SUCCESS" = false ]; then
+            echo "❌ Todas as tentativas falharam!"
             exit 1
           fi
       
