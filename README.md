@@ -50,3 +50,4 @@ npm run build
 - ADRs: `docs/adr/0001-stack-custo-zero.md`, `docs/adr/0002-precificacao-com-repasse.md`, `docs/adr/0003-migrations-sql-supabase.md`
 - Banco de dados (estado atual): `docs/DATABASE.md`
 - Guia de migrations: `docs/MIGRATIONS.md`
+- **Keep Alive (manter Supabase ativo):** `docs/KEEP_ALIVE.md`
