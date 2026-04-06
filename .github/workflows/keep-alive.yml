@@ -18,9 +18,7 @@ jobs:
         run: |
           echo "🔄 Fazendo ping no health check..."
           
-          # Substitua pela URL real do seu app em produção
-          # Exemplo: https://seu-app.vercel.app/api/health
-          URL="${{ secrets.APP_URL }}/api/health"
+          URL="https://https://projeto-javango.vercel.app/api/health"
           
           # Faz requisição e captura o status HTTP
           response=$(curl -s -o /dev/null -w "%{http_code}" "$URL")
