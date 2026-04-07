@@ -91,7 +91,7 @@ export default function QRScanner() {
       )}
 
       {scanResult === 'error' && (
-        <div className="bg-red-primary border-l-4 border-red-primary text-red-primary p-8 w-full text-center">
+        <div className="bg-red-primary border-l-4 border-red-primary p-8 w-full text-center">
           <p className="font-bold text-2xl">ERRO 🛑</p>
           <p className="text-xl mt-2">{message}</p>
           <button onClick={resetScanner} className="mt-6 bg-red-primary text-white px-6 py-3 rounded-lg w-full">

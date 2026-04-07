@@ -14,6 +14,7 @@ export default function AdminLayout({ children }) {
         <nav className="mt-6 px-4 space-y-2">
           {/* <NavItem href="/admin" icon={<LayoutDashboard size={20} />} label="Visão Geral" /> */}
           <NavItem href="/admin/events" icon={<Calendar size={20} />} label="Eventos" />
+          <NavItem href="/admin/staff/assignments" icon={<Users size={20} />} label="Atribuir Staffs" />
           <NavItem href="/admin/sales" icon={<BarChart3 size={20} />} label="Vendas" />
           {/* <NavItem href="/scanner" icon={<Ticket size={20} />} label="Scanner (Staff)" /> */}
         </nav>
