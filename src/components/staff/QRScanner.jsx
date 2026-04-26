@@ -2,6 +2,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { Html5QrcodeScanner } from 'html5-qrcode';
 import { createSupabaseBrowser } from '@/lib/supabase';
+import { useDebug } from '@/components/debug/MobileDebugger';
 
 export default function QRScanner() {
   const [scanResult, setScanResult] = useState(null); // null, success, error
@@ -10,6 +11,7 @@ export default function QRScanner() {
   const [cameraError, setCameraError] = useState(null);
   const [isScanning, setIsScanning] = useState(false);
   const scannerRef = useRef(null);
+  const debug = useDebug();
 
   useEffect(() => {
     if (isScanning || scanResult) return;
@@ -38,6 +40,7 @@ export default function QRScanner() {
         async function onScanSuccess(decodedText) {
           if (loading || scanResult) return; // Previne múltiplas leituras
           
+          debug.log('QR Code detectado', { qrToken: decodedText.substring(0, 20) + '...' });
           scanner.pause();
           setLoading(true);
 
@@ -49,6 +52,8 @@ export default function QRScanner() {
               throw new Error('Usuário não autenticado');
             }
 
+            debug.log('Validando ingresso...', { userId: user.id });
+
             // Chama nossa API
             const res = await fetch('/api/tickets/validate', {
               method: 'POST',
@@ -57,17 +62,21 @@ export default function QRScanner() {
             });
 
             const data = await res.json();
+            debug.log('Resposta da API', { status: res.status, data });
 
             if (res.ok) {
               setScanResult('success');
               setMessage(`${data.data.owner || 'Participante'} - ${data.data.type || 'Ingresso'}`);
+              debug.success('Ingresso validado!', data.data);
               playSuccessSound();
             } else {
               setScanResult('error');
               setMessage(data.message || 'Ingresso inválido');
+              debug.error('Ingresso inválido', data);
               playErrorSound();
             }
           } catch (e) {
+            debug.error('Erro na validação', { message: e.message });
             setScanResult('error');
             setMessage('Erro de conexão. Verifique sua internet.');
             playErrorSound();
@@ -79,13 +88,14 @@ export default function QRScanner() {
         function onScanError(error) {
           // Ignora erros de leitura frame a frame (normal durante scanning)
           if (error.includes('NotFoundException')) return;
-          console.error('Scan error:', error);
+          debug.warn('Scan error', { error });
         }
 
         scanner.render(onScanSuccess, onScanError);
         setIsScanning(true);
+        debug.success('Scanner iniciado');
       } catch (error) {
-        console.error('Error initializing scanner:', error);
+        debug.error('Erro ao iniciar scanner', { message: error.message });
         setCameraError('Não foi possível acessar a câmera. Verifique as permissões.');
       }
     };
@@ -118,6 +128,7 @@ export default function QRScanner() {
   };
 
   const resetScanner = () => {
+    debug.log('Resetando scanner...');
     setScanResult(null);
     setMessage('');
     setIsScanning(false);
@@ -126,7 +137,7 @@ export default function QRScanner() {
     // Limpa o scanner atual
     if (scannerRef.current) {
       scannerRef.current.clear().catch(error => 
-        console.error("Failed to clear scanner", error)
+        debug.warn("Erro ao limpar scanner", { error: error.message })
       );
       scannerRef.current = null;
     }

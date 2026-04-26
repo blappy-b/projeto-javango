@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Search, Loader2, CheckCircle, XCircle, User, AlertCircle } from "lucide-react";
+import { useDebug } from "@/components/debug/MobileDebugger";
 
 export default function ManualSearch({ eventId }) {
   const [searchQuery, setSearchQuery] = useState("");
@@ -10,6 +11,7 @@ export default function ManualSearch({ eventId }) {
   const [searched, setSearched] = useState(false);
   const [validating, setValidating] = useState(null);
   const [feedback, setFeedback] = useState(null);
+  const debug = useDebug();
 
   // Mask CPF for privacy: 123.456.789-01 -> ***456***01
   const maskCpf = (cpf) => {
@@ -26,6 +28,7 @@ export default function ManualSearch({ eventId }) {
       return;
     }
 
+    debug.log('Buscando ingressos...', { query: searchQuery, eventId });
     setLoading(true);
     setSearched(true);
     setFeedback(null);
@@ -41,12 +44,14 @@ export default function ManualSearch({ eventId }) {
 
       if (res.ok) {
         setResults(data.tickets || []);
+        debug.success('Busca concluída', { count: data.tickets?.length || 0 });
       } else {
         setResults([]);
         setFeedback({ type: "error", message: data.message || "Erro na busca" });
+        debug.error('Erro na busca', data);
       }
     } catch (error) {
-      console.error("Search error:", error);
+      debug.error("Erro de conexão na busca", { message: error.message });
       setResults([]);
       setFeedback({ type: "error", message: "Erro de conexão" });
     } finally {
@@ -55,6 +60,7 @@ export default function ManualSearch({ eventId }) {
   };
 
   const handleValidate = async (ticketId) => {
+    debug.log('Validando ingresso manual...', { ticketId });
     setValidating(ticketId);
     setFeedback(null);
 
@@ -78,14 +84,16 @@ export default function ManualSearch({ eventId }) {
           type: "success",
           message: `✓ Validado: ${data.data?.owner || "Participante"}`,
         });
+        debug.success('Ingresso validado manualmente', data.data);
       } else {
         setFeedback({
           type: "error",
           message: data.message || "Erro ao validar",
         });
+        debug.error('Erro ao validar ingresso', data);
       }
     } catch (error) {
-      console.error("Validation error:", error);
+      debug.error("Erro de conexão na validação", { message: error.message });
       setFeedback({ type: "error", message: "Erro de conexão" });
     } finally {
       setValidating(null);

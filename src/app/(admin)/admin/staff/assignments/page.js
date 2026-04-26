@@ -32,12 +32,13 @@ export default async function StaffAssignmentsPage() {
     .in("role", ["staff", "admin"])
     .order("email");
 
-  // 3. Busca todos os eventos (published ou draft)
+  // 3. Busca apenas eventos futuros (published ou draft)
   const { data: events } = await supabase
     .from("events")
     .select("id, title, start_date, status")
     .in("status", ["draft", "published"])
-    .order("start_date", { ascending: false });
+    .gte("start_date", new Date().toISOString())
+    .order("start_date", { ascending: true });
 
   // 4. Busca todas as atribuições existentes
   const { data: assignments } = await supabase

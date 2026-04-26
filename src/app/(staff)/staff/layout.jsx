@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createSupabaseBrowser } from "@/lib/supabase";
 import { QrCode, LogOut, Loader2 } from "lucide-react";
+import { DebugProvider } from "@/components/debug/MobileDebugger";
 
 export default function StaffLayout({ children }) {
   const [loading, setLoading] = useState(true);
@@ -75,33 +76,35 @@ export default function StaffLayout({ children }) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
-      {/* Header */}
-      <header className="bg-gray-800 border-b border-gray-700 px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <QrCode className="w-6 h-6 text-red-primary" />
-          <div>
-            <h1 className="font-bold text-lg">Scanner</h1>
-            <p className="text-xs text-gray-400">Javango Staff</p>
+    <DebugProvider enabled={true}>
+      <div className="min-h-screen bg-gray-900 text-white">
+        {/* Header */}
+        <header className="bg-gray-800 border-b border-gray-700 px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <QrCode className="w-6 h-6 text-red-primary" />
+            <div>
+              <h1 className="font-bold text-lg">Scanner</h1>
+              <p className="text-xs text-gray-400">Javango Staff</p>
+            </div>
           </div>
-        </div>
-        
-        <button
-          onClick={handleLogout}
-          className="p-2 text-gray-400 hover:text-white transition-colors"
-          title="Sair"
-        >
-          <LogOut className="w-5 h-5" />
-        </button>
-      </header>
+          
+          <button
+            onClick={handleLogout}
+            className="p-2 text-gray-400 hover:text-white transition-colors"
+            title="Sair"
+          >
+            <LogOut className="w-5 h-5" />
+          </button>
+        </header>
 
-      {/* Pass assigned events to children via context/props */}
-      <main className="p-4">
-        {typeof children === "function" 
-          ? children({ assignedEvents, user })
-          : children
-        }
-      </main>
-    </div>
+        {/* Pass assigned events to children via context/props */}
+        <main className="p-4">
+          {typeof children === "function" 
+            ? children({ assignedEvents, user })
+            : children
+          }
+        </main>
+      </div>
+    </DebugProvider>
   );
 }

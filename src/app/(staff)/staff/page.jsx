@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import QRScanner from "@/components/staff/QRScanner";
 import ManualSearch from "@/components/staff/ManualSearch";
 import { Search, QrCode, ChevronDown, AlertCircle } from "lucide-react";
+import { useDebug } from "@/components/debug/MobileDebugger";
 
 export default function StaffScannerPage() {
   const [showManualSearch, setShowManualSearch] = useState(false);
@@ -15,38 +16,54 @@ export default function StaffScannerPage() {
   const [noAssignments, setNoAssignments] = useState(false);
   const router = useRouter();
   const supabase = createSupabaseBrowser();
+  const debug = useDebug();
 
   useEffect(() => {
     async function loadAssignments() {
       try {
+        debug.log('Carregando usuário e atribuições...');
         const { data: { user } } = await supabase.auth.getUser();
         
         if (!user) {
+          debug.warn('Usuário não autenticado, redirecionando...');
           router.replace("/login");
           return;
         }
 
+        debug.log('Usuário autenticado', { userId: user.id, email: user.email });
+
         // Check role
-        const { data: profile } = await supabase
+        const { data: profile, error: profileError } = await supabase
           .from("profiles")
           .select("role")
           .eq("id", user.id)
           .single();
 
+        if (profileError) {
+          debug.error('Erro ao buscar perfil', { error: profileError.message });
+        }
+
+        debug.log('Perfil carregado', { role: profile?.role });
+
         // Admin can see all events, staff only assigned ones
         if (profile?.role === "admin") {
-          const { data: events } = await supabase
+          const { data: events, error: eventsError } = await supabase
             .from("events")
             .select("id, title, start_date")
             .in("status", ["published", "ended"])
             .order("start_date", { ascending: false });
 
+          if (eventsError) {
+            debug.error('Erro ao buscar eventos', { error: eventsError.message });
+          }
+
           setAssignedEvents(events || []);
           if (events?.length > 0) {
             setSelectedEventId(events[0].id);
+            debug.success('Admin: eventos carregados', { count: events.length });
           }
         } else if (profile?.role === "staff") {
-          const { data: assignments } = await supabase
+          const { data: assignments, error: assignError } = await supabase
             .from("staff_assignments")
             .select(`
               event_id,
@@ -58,20 +75,27 @@ export default function StaffScannerPage() {
             `)
             .eq("staff_id", user.id);
 
+          if (assignError) {
+            debug.error('Erro ao buscar atribuições', { error: assignError.message });
+          }
+
           const events = assignments?.map(a => a.events).filter(Boolean) || [];
           setAssignedEvents(events);
           
           if (events.length > 0) {
             setSelectedEventId(events[0].id);
+            debug.success('Staff: eventos atribuídos carregados', { count: events.length });
           } else {
+            debug.warn('Nenhum evento atribuído a este staff');
             setNoAssignments(true);
           }
         } else {
+          debug.warn('Role não autorizado, redirecionando...', { role: profile?.role });
           router.replace("/");
           return;
         }
       } catch (error) {
-        console.error("Error loading assignments:", error);
+        debug.error("Erro ao carregar dados", { message: error.message });
       } finally {
         setLoading(false);
       }
