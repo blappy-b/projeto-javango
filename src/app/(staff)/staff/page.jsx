@@ -4,98 +4,68 @@ import { useState, useEffect } from "react";
 import { createSupabaseBrowser } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import QRScanner from "@/components/staff/QRScanner";
-import ManualSearch from "@/components/staff/ManualSearch";
-import { Search, QrCode, ChevronDown, AlertCircle } from "lucide-react";
-import { useDebug } from "@/components/debug/MobileDebugger";
+import CPFSearch from "@/components/staff/CPFSearch";
+import { Search, QrCode, ChevronDown, AlertCircle, Calendar, MapPin } from "lucide-react";
 
-export default function StaffScannerPage() {
-  const [showManualSearch, setShowManualSearch] = useState(false);
+export default function StaffPage() {
+  const [activeTab, setActiveTab] = useState("qr"); // "qr" or "cpf"
   const [assignedEvents, setAssignedEvents] = useState([]);
-  const [selectedEventId, setSelectedEventId] = useState(null);
+  const [selectedEvent, setSelectedEvent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [noAssignments, setNoAssignments] = useState(false);
   const router = useRouter();
   const supabase = createSupabaseBrowser();
-  const debug = useDebug();
 
   useEffect(() => {
     async function loadAssignments() {
       try {
-        debug.log('Carregando usuário e atribuições...');
         const { data: { user } } = await supabase.auth.getUser();
         
         if (!user) {
-          debug.warn('Usuário não autenticado, redirecionando...');
           router.replace("/login");
           return;
         }
 
-        debug.log('Usuário autenticado', { userId: user.id, email: user.email });
-
-        // Check role
-        const { data: profile, error: profileError } = await supabase
+        const { data: profile } = await supabase
           .from("profiles")
           .select("role")
           .eq("id", user.id)
           .single();
 
-        if (profileError) {
-          debug.error('Erro ao buscar perfil', { error: profileError.message });
-        }
-
-        debug.log('Perfil carregado', { role: profile?.role });
-
-        // Admin can see all events, staff only assigned ones
         if (profile?.role === "admin") {
-          const { data: events, error: eventsError } = await supabase
+          const { data: events } = await supabase
             .from("events")
-            .select("id, title, start_date")
+            .select("id, title, start_date, location")
             .in("status", ["published", "ended"])
             .order("start_date", { ascending: false });
 
-          if (eventsError) {
-            debug.error('Erro ao buscar eventos', { error: eventsError.message });
-          }
-
           setAssignedEvents(events || []);
           if (events?.length > 0) {
-            setSelectedEventId(events[0].id);
-            debug.success('Admin: eventos carregados', { count: events.length });
+            setSelectedEvent(events[0]);
           }
         } else if (profile?.role === "staff") {
-          const { data: assignments, error: assignError } = await supabase
+          const { data: assignments } = await supabase
             .from("staff_assignments")
             .select(`
               event_id,
-              events (
-                id,
-                title,
-                start_date
-              )
+              events (id, title, start_date, location)
             `)
             .eq("staff_id", user.id);
-
-          if (assignError) {
-            debug.error('Erro ao buscar atribuições', { error: assignError.message });
-          }
 
           const events = assignments?.map(a => a.events).filter(Boolean) || [];
           setAssignedEvents(events);
           
           if (events.length > 0) {
-            setSelectedEventId(events[0].id);
-            debug.success('Staff: eventos atribuídos carregados', { count: events.length });
+            setSelectedEvent(events[0]);
           } else {
-            debug.warn('Nenhum evento atribuído a este staff');
             setNoAssignments(true);
           }
         } else {
-          debug.warn('Role não autorizado, redirecionando...', { role: profile?.role });
           router.replace("/");
           return;
         }
       } catch (error) {
-        debug.error("Erro ao carregar dados", { message: error.message });
+        console.error("Erro ao carregar dados:", error);
       } finally {
         setLoading(false);
       }
@@ -104,42 +74,54 @@ export default function StaffScannerPage() {
     loadAssignments();
   }, []);
 
+  const formatDate = (dateStr) => {
+    if (!dateStr) return "";
+    return new Date(dateStr).toLocaleDateString("pt-BR", {
+      day: "2-digit",
+      month: "short",
+    });
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-primary"></div>
+        <div className="animate-spin rounded-full h-10 w-10 border-2 border-red-primary border-t-transparent" />
       </div>
     );
   }
 
   if (noAssignments) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
-        <AlertCircle className="w-16 h-16 text-yellow-500 mb-4" />
-        <h2 className="text-xl font-bold text-white mb-2">
+      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-6">
+        <div className="w-20 h-20 rounded-full bg-yellow-500/10 flex items-center justify-center mb-6">
+          <AlertCircle className="w-10 h-10 text-yellow-500" />
+        </div>
+        <h2 className="text-2xl font-bold text-white mb-3">
           Sem eventos atribuídos
         </h2>
-        <p className="text-gray-400">
-          Você ainda não foi atribuído a nenhum evento.
-          Entre em contato com o administrador.
+        <p className="text-gray-400 max-w-sm">
+          Você ainda não foi atribuído a nenhum evento. Entre em contato com o administrador.
         </p>
       </div>
     );
   }
 
   return (
-    <div className="max-w-lg mx-auto">
-      {/* Event Selector */}
+    <div className="max-w-md mx-auto px-4 py-6">
+      {/* Event Selector - Only show if more than one event */}
       {assignedEvents.length > 1 && (
-        <div className="mb-4">
-          <label className="block text-sm text-gray-400 mb-2">
-            Evento selecionado:
+        <div className="mb-6">
+          <label className="block text-sm font-medium text-gray-400 mb-2">
+            Selecione o evento
           </label>
           <div className="relative">
             <select
-              value={selectedEventId || ""}
-              onChange={(e) => setSelectedEventId(e.target.value)}
-              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 pr-10 text-white appearance-none focus:outline-none focus:border-red-primary"
+              value={selectedEvent?.id || ""}
+              onChange={(e) => {
+                const event = assignedEvents.find(ev => ev.id === e.target.value);
+                setSelectedEvent(event);
+              }}
+              className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-4 pr-12 text-white text-lg font-medium appearance-none focus:outline-none focus:ring-2 focus:ring-red-primary focus:border-transparent transition-all"
             >
               {assignedEvents.map((event) => (
                 <option key={event.id} value={event.id}>
@@ -147,55 +129,66 @@ export default function StaffScannerPage() {
                 </option>
               ))}
             </select>
-            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+            <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
           </div>
         </div>
       )}
 
-      {/* Single event display */}
-      {assignedEvents.length === 1 && (
-        <div className="mb-4 bg-gray-800 border border-gray-700 rounded-lg px-4 py-3">
-          <p className="text-sm text-gray-400">Evento:</p>
-          <p className="font-semibold text-white">{assignedEvents[0].title}</p>
-        </div>
-      )}
-
-      {/* Scanner or Manual Search */}
-      {!showManualSearch ? (
-        <div className="space-y-4">
-          {/* QR Scanner */}
-          <div className="bg-gray-800 rounded-xl p-4 border border-gray-700">
-            <div className="flex items-center gap-2 mb-4">
-              <QrCode className="w-5 h-5 text-red-primary" />
-              <h2 className="font-semibold">Escanear QR Code</h2>
-            </div>
-            <QRScanner eventId={selectedEventId} />
+      {/* Current Event Card */}
+      {selectedEvent && (
+        <div className="bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700 rounded-2xl p-5 mb-6 shadow-lg">
+          <h2 className="text-xl font-bold text-white mb-3">{selectedEvent.title}</h2>
+          <div className="flex flex-wrap gap-4 text-sm">
+            {selectedEvent.start_date && (
+              <div className="flex items-center gap-2 text-gray-300">
+                <Calendar className="w-4 h-4 text-red-primary" />
+                <span>{formatDate(selectedEvent.start_date)}</span>
+              </div>
+            )}
+            {selectedEvent.location && (
+              <div className="flex items-center gap-2 text-gray-300">
+                <MapPin className="w-4 h-4 text-red-primary" />
+                <span className="truncate max-w-[180px]">{selectedEvent.location}</span>
+              </div>
+            )}
           </div>
-
-          {/* Manual Search Fallback Button */}
-          <button
-            onClick={() => setShowManualSearch(true)}
-            className="w-full flex items-center justify-center gap-2 bg-gray-800 border border-gray-700 hover:border-gray-600 text-gray-300 hover:text-white py-4 rounded-xl transition-colors"
-          >
-            <Search className="w-5 h-5" />
-            <span>Busca Manual (Nome/CPF)</span>
-          </button>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {/* Back to Scanner Button */}
-          <button
-            onClick={() => setShowManualSearch(false)}
-            className="w-full flex items-center justify-center gap-2 bg-gray-800 border border-gray-700 hover:border-gray-600 text-gray-300 hover:text-white py-3 rounded-xl transition-colors"
-          >
-            <QrCode className="w-5 h-5" />
-            <span>Voltar ao Scanner</span>
-          </button>
-
-          {/* Manual Search Component */}
-          <ManualSearch eventId={selectedEventId} />
         </div>
       )}
+
+      {/* Tab Navigation */}
+      <div className="flex bg-gray-800/50 rounded-xl p-1 mb-6">
+        <button
+          onClick={() => setActiveTab("qr")}
+          className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-lg font-medium transition-all ${
+            activeTab === "qr"
+              ? "bg-red-primary text-white shadow-lg"
+              : "text-gray-400 hover:text-white"
+          }`}
+        >
+          <QrCode className="w-5 h-5" />
+          <span>QR Code</span>
+        </button>
+        <button
+          onClick={() => setActiveTab("cpf")}
+          className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-lg font-medium transition-all ${
+            activeTab === "cpf"
+              ? "bg-red-primary text-white shadow-lg"
+              : "text-gray-400 hover:text-white"
+          }`}
+        >
+          <Search className="w-5 h-5" />
+          <span>Buscar CPF</span>
+        </button>
+      </div>
+
+      {/* Content */}
+      <div className="bg-gray-800 rounded-2xl border border-gray-700 overflow-hidden">
+        {activeTab === "qr" ? (
+          <QRScanner eventId={selectedEvent?.id} />
+        ) : (
+          <CPFSearch eventId={selectedEvent?.id} />
+        )}
+      </div>
     </div>
   );
 }
