@@ -13,24 +13,28 @@ export default function QRScanner() {
   const [errorDetails, setErrorDetails] = useState(null); // Full error info for debugging
   const [showErrorDetails, setShowErrorDetails] = useState(false);
   const [scannerReady, setScannerReady] = useState(false);
+  const [cameraStarted, setCameraStarted] = useState(false); // User clicked to start
   const scannerRef = useRef(null);
   const debug = useDebug();
 
-  useEffect(() => {
-    if (isScanning || scanResult) return;
+  // Função para iniciar o scanner manualmente
+  const startCamera = () => {
+    setCameraStarted(true);
+    setCameraError(null);
+  };
 
-    let scanner = null;
+  // Inicializa o scanner quando cameraStarted muda para true
+  useEffect(() => {
+    if (!cameraStarted || scannerReady || scanResult) return;
 
     const initScanner = async () => {
       try {
-        // Configuração da Lib com melhor suporte mobile
-        scanner = new Html5QrcodeScanner(
+        const scanner = new Html5QrcodeScanner(
           "reader", 
           { 
             fps: 10, 
             qrbox: { width: 250, height: 250 },
             aspectRatio: 1.0,
-            // Preferir câmera traseira em mobile
             videoConstraints: {
               facingMode: { ideal: "environment" }
             }
@@ -41,7 +45,7 @@ export default function QRScanner() {
         scannerRef.current = scanner;
 
         async function onScanSuccess(decodedText) {
-          if (loading || scanResult) return; // Previne múltiplas leituras
+          if (loading || scanResult) return;
           
           debug.log('QR Code detectado', { qrToken: decodedText.substring(0, 20) + '...' });
           scanner.pause();
@@ -57,7 +61,6 @@ export default function QRScanner() {
 
             debug.log('Validando ingresso...', { userId: user.id });
 
-            // Chama nossa API
             const res = await fetch('/api/tickets/validate', {
               method: 'POST',
               body: JSON.stringify({ qrToken: decodedText }),
@@ -107,7 +110,6 @@ export default function QRScanner() {
         }
 
         function onScanError(error) {
-          // Ignora erros de leitura frame a frame (normal durante scanning)
           if (error.includes('NotFoundException')) return;
           debug.warn('Scan error', { error });
         }
@@ -119,15 +121,18 @@ export default function QRScanner() {
       } catch (error) {
         debug.error('Erro ao iniciar scanner', { message: error.message });
         setCameraError(`Erro ao iniciar scanner: ${error.message}`);
+        setCameraStarted(false);
       }
     };
 
-    // Pequeno delay para garantir que a DOM está pronta
+    // Pequeno delay para garantir que a div #reader existe no DOM
     const timer = setTimeout(initScanner, 100);
+    return () => clearTimeout(timer);
+  }, [cameraStarted, scannerReady, scanResult]);
 
-    // Cleanup
+  // Cleanup on unmount
+  useEffect(() => {
     return () => {
-      clearTimeout(timer);
       if (scannerRef.current) {
         scannerRef.current.clear().catch(error => 
           console.error("Failed to clear scanner", error)
@@ -135,7 +140,7 @@ export default function QRScanner() {
         scannerRef.current = null;
       }
     };
-  }, [isScanning, scanResult, loading]);
+  }, []);
 
   const playSuccessSound = () => {
     try {
@@ -160,6 +165,7 @@ export default function QRScanner() {
     setErrorDetails(null);
     setShowErrorDetails(false);
     setScannerReady(false);
+    setCameraStarted(false);
     
     // Limpa o scanner atual
     if (scannerRef.current) {
@@ -253,8 +259,27 @@ export default function QRScanner() {
               }
             `}</style>
             
+            {/* Botão para iniciar a câmera */}
+            {!cameraStarted && (
+              <div className="bg-gray-800 rounded-lg p-8 text-center">
+                <div className="text-6xl mb-6">📷</div>
+                <h3 className="text-xl font-bold text-white mb-3">
+                  Scanner de QR Code
+                </h3>
+                <p className="text-gray-400 mb-6">
+                  Clique no botão abaixo para ativar a câmera e escanear ingressos
+                </p>
+                <button
+                  onClick={startCamera}
+                  className="bg-red-600 hover:bg-red-700 text-white font-bold py-4 px-8 rounded-xl w-full text-lg shadow-lg transform transition hover:scale-105"
+                >
+                  📸 Ativar Câmera
+                </button>
+              </div>
+            )}
+            
             {/* Indicador de carregamento enquanto o scanner inicializa */}
-            {!scannerReady && (
+            {cameraStarted && !scannerReady && (
               <div className="bg-gray-800 rounded-lg p-8 text-center mb-4">
                 <div className="inline-block animate-spin rounded-full h-10 w-10 border-b-2 border-red-500 mb-4"></div>
                 <p className="text-white font-medium">Iniciando câmera...</p>
@@ -262,7 +287,10 @@ export default function QRScanner() {
               </div>
             )}
             
-            <div id="reader" className="rounded-lg overflow-hidden shadow-lg"></div>
+            {/* Container do scanner - só mostra quando câmera foi iniciada */}
+            {cameraStarted && (
+              <div id="reader" className="rounded-lg overflow-hidden shadow-lg"></div>
+            )}
             
             {/* Loading durante validação */}
             {loading && (
