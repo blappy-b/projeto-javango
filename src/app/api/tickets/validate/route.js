@@ -121,8 +121,19 @@ export async function POST(req) {
       },
     });
   } catch (err) {
-    console.error(err);
-    return NextResponse.json({ success: false, message: "Erro interno no servidor" }, { status: 500 });
+    console.error('Ticket validation error:', err);
+    return NextResponse.json({ 
+      success: false, 
+      message: "Erro interno no servidor",
+      debug: {
+        errorName: err.name,
+        errorMessage: err.message,
+        errorCode: err.code,
+        errorDetails: err.details,
+        errorHint: err.hint,
+        timestamp: new Date().toISOString()
+      }
+    }, { status: 500 });
   }
 }
 
