@@ -2,8 +2,9 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
-import { Calendar, Users, BarChart3, Menu, X } from 'lucide-react'
+import { usePathname, useRouter } from 'next/navigation'
+import { Calendar, Users, BarChart3, Menu, X, LogOut } from 'lucide-react'
+import { createSupabaseBrowser } from '@/lib/supabase'
 
 const MENU_ITEMS = [
   { href: '/admin/events', icon: Calendar, label: 'Eventos' },
@@ -14,8 +15,16 @@ const MENU_ITEMS = [
 export default function AdminLayout({ children }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const pathname = usePathname()
+  const router = useRouter()
+  const supabase = createSupabaseBrowser()
 
   const closeMobileMenu = () => setIsMobileMenuOpen(false)
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+    router.push('/')
+    router.refresh()
+  }
 
   return (
     <div className="flex min-h-screen bg-gray-100">
@@ -78,6 +87,19 @@ export default function AdminLayout({ children }) {
             />
           ))}
         </nav>
+
+        <div className="absolute bottom-4 left-0 right-0 px-4">
+          <button
+            onClick={() => {
+              closeMobileMenu()
+              handleLogout()
+            }}
+            className="flex items-center gap-3 w-full px-4 py-3 rounded-lg text-slate-300 hover:bg-gray-700 hover:text-white transition-colors"
+          >
+            <LogOut size={20} />
+            <span>Sair</span>
+          </button>
+        </div>
       </aside>
 
       {/* Desktop Sidebar (Fixed) */}
@@ -98,6 +120,16 @@ export default function AdminLayout({ children }) {
             />
           ))}
         </nav>
+
+        <div className="absolute bottom-4 left-0 right-0 px-4">
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-3 w-full px-4 py-3 rounded-lg text-slate-300 hover:bg-gray-700 hover:text-white transition-colors"
+          >
+            <LogOut size={20} />
+            <span>Sair</span>
+          </button>
+        </div>
       </aside>
 
       {/* Conteúdo Principal */}
