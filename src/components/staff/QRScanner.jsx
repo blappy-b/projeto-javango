@@ -12,6 +12,7 @@ export default function QRScanner() {
   const [isScanning, setIsScanning] = useState(false);
   const [errorDetails, setErrorDetails] = useState(null); // Full error info for debugging
   const [showErrorDetails, setShowErrorDetails] = useState(false);
+  const [scannerReady, setScannerReady] = useState(false);
   const scannerRef = useRef(null);
   const debug = useDebug();
 
@@ -113,17 +114,20 @@ export default function QRScanner() {
 
         scanner.render(onScanSuccess, onScanError);
         setIsScanning(true);
+        setScannerReady(true);
         debug.success('Scanner iniciado');
       } catch (error) {
         debug.error('Erro ao iniciar scanner', { message: error.message });
-        setCameraError('Não foi possível acessar a câmera. Verifique as permissões.');
+        setCameraError(`Erro ao iniciar scanner: ${error.message}`);
       }
     };
 
-    initScanner();
+    // Pequeno delay para garantir que a DOM está pronta
+    const timer = setTimeout(initScanner, 100);
 
     // Cleanup
     return () => {
+      clearTimeout(timer);
       if (scannerRef.current) {
         scannerRef.current.clear().catch(error => 
           console.error("Failed to clear scanner", error)
@@ -155,6 +159,7 @@ export default function QRScanner() {
     setCameraError(null);
     setErrorDetails(null);
     setShowErrorDetails(false);
+    setScannerReady(false);
     
     // Limpa o scanner atual
     if (scannerRef.current) {
@@ -166,14 +171,14 @@ export default function QRScanner() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-[60vh] bg-gray-900 flex flex-col">
       {/* Header com Instruções */}
       {!scanResult && !cameraError && (
-        <div className="bg-white border-b border-gray-200 p-4 text-center">
-          <h2 className="text-xl font-bold text-gray-800 mb-2">
+        <div className="bg-gray-800 border-b border-gray-700 p-4 text-center">
+          <h2 className="text-xl font-bold text-white mb-2">
             Scanner de Ingressos
           </h2>
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-gray-300">
             📱 Aponte a câmera para o QR Code do ingresso
           </p>
         </div>
@@ -208,6 +213,55 @@ export default function QRScanner() {
       {!scanResult && !cameraError && (
         <div className="flex-1 flex items-center justify-center p-4">
           <div className="w-full max-w-md">
+            {/* Estilos para garantir visibilidade dos elementos da lib html5-qrcode */}
+            <style>{`
+              #reader {
+                background: white !important;
+                min-height: 300px;
+              }
+              #reader button {
+                background: #dc2626 !important;
+                color: white !important;
+                padding: 12px 24px !important;
+                border-radius: 8px !important;
+                font-weight: bold !important;
+                border: none !important;
+                cursor: pointer !important;
+                font-size: 16px !important;
+              }
+              #reader select {
+                background: white !important;
+                color: black !important;
+                padding: 8px !important;
+                border-radius: 4px !important;
+                border: 1px solid #ccc !important;
+              }
+              #reader__dashboard_section_csr {
+                padding: 20px !important;
+              }
+              #reader__dashboard_section_csr button {
+                margin: 10px auto !important;
+                display: block !important;
+              }
+              #reader__status_span {
+                color: #333 !important;
+                background: #f0f0f0 !important;
+                padding: 8px !important;
+                border-radius: 4px !important;
+                display: block !important;
+                margin: 10px 0 !important;
+              }
+            `}</style>
+            
+            {/* Indicador de carregamento enquanto o scanner inicializa */}
+            {!scannerReady && (
+              <div className="bg-gray-800 rounded-lg p-8 text-center mb-4">
+                <div className="inline-block animate-spin rounded-full h-10 w-10 border-b-2 border-red-500 mb-4"></div>
+                <p className="text-white font-medium">Iniciando câmera...</p>
+                <p className="text-gray-400 text-sm mt-2">Aguarde ou permita o acesso à câmera</p>
+              </div>
+            )}
+            
             <div id="reader" className="rounded-lg overflow-hidden shadow-lg"></div>
             
             {/* Loading durante validação */}
@@ -244,13 +298,13 @@ export default function QRScanner() {
 
       {/* Feedback de Erro */}
       {scanResult === 'error' && (
-        <div className="flex-1 flex flex-col items-center justify-center p-6 bg-red-50 overflow-auto">
+        <div className="flex-1 flex items-center justify-center p-6 bg-red-50">
           <div className="bg-white border-4 border-red-500 rounded-2xl p-8 max-w-md w-full text-center shadow-2xl">
             <div className="text-7xl mb-4">❌</div>
             <h3 className="text-3xl font-bold text-red-700 mb-4">
               INGRESSO INVÁLIDO
             </h3>
-            <div className="bg-red-100 rounded-lg p-4 mb-4">
+            <div className="bg-red-100 rounded-lg p-4 mb-6">
               <p className="text-lg font-semibold text-red-900">{message}</p>
             </div>
             
@@ -266,7 +320,7 @@ export default function QRScanner() {
             
             {/* Painel expansível com detalhes do erro */}
             {showErrorDetails && errorDetails && (
-              <div className="bg-gray-900 rounded-lg p-4 mb-6 text-left overflow-auto max-h-64">
+              <div className="bg-gray-900 rounded-lg p-4 mb-6 text-left overflow-auto max-h-48">
                 <p className="text-xs text-gray-400 mb-2 font-mono">DEBUG INFO:</p>
                 <pre className="text-xs text-green-400 font-mono whitespace-pre-wrap break-all">
                   {JSON.stringify(errorDetails, null, 2)}
