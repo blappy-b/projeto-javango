@@ -119,7 +119,7 @@ export default function LoginForm() {
         </div>
 
         {serverError && (
-          <div className="flex items-center gap-2 p-3 bg-red-primary text-red-primary rounded-lg text-sm">
+          <div className="flex items-center gap-2 p-3 text-red-primary rounded-lg text-sm">
             <AlertCircle size={18} />
             <span>{serverError}</span>
           </div>
