@@ -16,12 +16,12 @@ export default async function MyTicketsPage({ searchParams }) {
     redirect("/login");
   }
 
-  // 2. Busca Ingressos com Join no Evento e no Lote
+  // 2. Busca Ingressos com Join no Evento e no Lote (apenas eventos futuros)
   const { data: tickets, error } = await supabase
     .from("tickets")
     .select(`
       *,
-      events (
+      events!inner (
         title,
         start_date,
         location,
@@ -32,6 +32,7 @@ export default async function MyTicketsPage({ searchParams }) {
       )
     `)
     .eq("user_id", user.id)
+    .gte("events.start_date", new Date().toISOString())
     .order("purchased_at", { ascending: false });
 
   // DEBUG: Log para investigar

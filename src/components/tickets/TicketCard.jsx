@@ -80,13 +80,6 @@ export default function TicketCard({ ticket, event }) {
               </span>
             </div>
           </div>
-          
-          <div className="text-right">
-             <p className="text-xs text-gray-400">Titular</p>
-             <p className="text-sm font-medium text-gray-900 truncate max-w-[150px]">
-               {ticket.guest_name || "Você"}
-             </p>
-          </div>
         </div>
       </div>
     </div>
