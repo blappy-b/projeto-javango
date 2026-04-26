@@ -52,22 +52,22 @@ export default async function StaffAssignmentsPage() {
     `);
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
+    <div className="min-h-screen bg-gray-50 p-4 md:p-8">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
+        <div className="mb-6 md:mb-8">
           <Link
-            href="/admin"
-            className="text-red-primary hover:underline flex items-center gap-2 mb-4"
+            href="/admin/events"
+            className="text-red-primary hover:underline flex items-center gap-2 mb-4 text-sm md:text-base"
           >
             <ArrowLeft size={18} />
-            Voltar ao Dashboard
+            Voltar
           </Link>
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 flex items-center gap-3">
             <Users className="text-red-primary" />
-            Atribuição de Staffs
+            <span>Atribuição de Staffs</span>
           </h1>
-          <p className="text-gray-500 mt-2">
+          <p className="text-gray-500 mt-2 text-sm md:text-base">
             Atribua membros da equipe aos eventos para validação de ingressos
           </p>
         </div>

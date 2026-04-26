@@ -322,7 +322,7 @@ export default function CreateEventForm({ initialData = null }) {
                   />
                 </div>
 
-                <div className="w-16">
+              <div className="w-full md:w-16">
                   <label className="text-xs text-gray-500 font-medium">
                     Preço
                   </label>
@@ -338,7 +338,7 @@ export default function CreateEventForm({ initialData = null }) {
                   />
                 </div>
 
-                <div className="w-16">
+                <div className="w-full md:w-16">
                   <label className="text-xs text-gray-500 font-medium">
                     Qtd.
                   </label>
@@ -355,7 +355,7 @@ export default function CreateEventForm({ initialData = null }) {
                 </div>
 
                 {isExistingBatch && (
-                  <div className="w-24">
+                  <div className="w-full md:w-24">
                     <label className="text-xs text-gray-500 font-medium">
                       Qtd. Vendida
                     </label>
@@ -372,7 +372,7 @@ export default function CreateEventForm({ initialData = null }) {
                   </div>
                 )}
 
-                <div className="w-16">
+                <div className="w-full md:w-16">
                   <label className="text-xs text-gray-500 font-medium">
                     Taxa (%)
                   </label>
@@ -392,7 +392,7 @@ export default function CreateEventForm({ initialData = null }) {
                   type="button"
                   onClick={() => remove(index)}
                   disabled={!canDelete}
-                  className="md:mt-5 text-gray-400 hover:text-red-500 transition disabled:text-gray-300 disabled:hover:text-gray-300 disabled:cursor-not-allowed"
+                  className="md:mt-5 self-end md:self-auto p-2 md:p-0 text-gray-400 hover:text-red-500 transition disabled:text-gray-300 disabled:hover:text-gray-300 disabled:cursor-not-allowed"
                   title={
                     isExistingBatch
                       ? "Excluir lote (apenas se sem vendas)"
@@ -417,7 +417,7 @@ export default function CreateEventForm({ initialData = null }) {
         <button
           type="submit"
           disabled={isSubmitting}
-          className="bg-red-primary text-white px-8 py-3 rounded-lg font-bold hover:bg-red-700 transition disabled:opacity-50 flex items-center gap-2 cursor-pointer"
+          className="bg-red-primary text-white px-6 md:px-8 py-3 rounded-lg font-bold hover:bg-red-700 transition disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer w-full md:w-auto"
         >
           {isSubmitting ? (
             <>

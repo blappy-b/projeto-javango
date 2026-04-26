@@ -123,10 +123,10 @@ export default function StaffAssignmentManager({ staffs, events, assignments }) 
                 }`}
                 onClick={() => setSelectedStaff(isSelected ? null : staff.id)}
               >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
                     <div
-                      className={`p-2 rounded-full ${
+                      className={`p-2 rounded-full flex-shrink-0 ${
                         isSelected ? "bg-red-primary" : "bg-gray-300"
                       }`}
                     >
@@ -135,22 +135,22 @@ export default function StaffAssignmentManager({ staffs, events, assignments }) 
                         className={isSelected ? "text-white" : "text-gray-600"}
                       />
                     </div>
-                    <div>
-                      <p className="font-bold text-gray-900">{staff.email}</p>
+                    <div className="min-w-0">
+                      <p className="font-bold text-gray-900 truncate text-sm md:text-base">{staff.email}</p>
                       <p className="text-xs text-gray-500 uppercase">
                         {staff.role === "admin" ? "Admin" : "Staff"}
                       </p>
                     </div>
                   </div>
                   <div
-                    className={`px-3 py-1 rounded-full text-xs font-bold ${
+                    className={`px-2 md:px-3 py-1 rounded-full text-xs font-bold flex-shrink-0 ${
                       staffAssignments.length > 0
                         ? "bg-green-100 text-green-700"
                         : "bg-gray-100 text-gray-500"
                     }`}
                   >
                     {staffAssignments.length}{" "}
-                    {staffAssignments.length === 1 ? "evento" : "eventos"}
+                    <span className="hidden sm:inline">{staffAssignments.length === 1 ? "evento" : "eventos"}</span>
                   </div>
                 </div>
               </div>
@@ -193,7 +193,7 @@ export default function StaffAssignmentManager({ staffs, events, assignments }) 
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Adicionar ao evento:
                     </label>
-                    <div className="flex gap-2">
+                    <div className="flex flex-col sm:flex-row gap-2">
                       <select
                         value={selectedEvent}
                         onChange={(e) => setSelectedEvent(e.target.value)}
@@ -221,7 +221,7 @@ export default function StaffAssignmentManager({ staffs, events, assignments }) 
                       <button
                         onClick={handleAddAssignment}
                         disabled={loading || !selectedEvent}
-                        className="bg-red-primary text-white px-4 py-2 rounded-lg hover:bg-red-700 transition disabled:opacity-50 flex items-center gap-2"
+                        className="bg-red-primary text-white px-4 py-2 rounded-lg hover:bg-red-700 transition disabled:opacity-50 flex items-center justify-center gap-2 w-full sm:w-auto"
                       >
                         <Plus size={18} />
                         Adicionar

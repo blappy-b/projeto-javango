@@ -29,22 +29,22 @@ export default async function AdminEventsPage() {
   return (
     <div>
       {/* Cabeçalho */}
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6 md:mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-dark-gray">Eventos</h1>
-          <p className="text-gray-500">Gerencie seus shows e recitais</p>
+          <h1 className="text-2xl md:text-3xl font-bold text-dark-gray">Eventos</h1>
+          <p className="text-gray-500 text-sm md:text-base">Gerencie seus shows e recitais</p>
         </div>
         <Link 
           href="/admin/events/new" 
-          className="bg-red-primary text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-red-700 transition"
+          className="bg-red-primary text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 hover:bg-red-700 transition w-full sm:w-auto"
         >
           <Plus size={20} />
           Novo Evento
         </Link>
       </div>
 
-      {/* Tabela de Eventos */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+      {/* Desktop: Tabela de Eventos */}
+      <div className="hidden md:block bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm text-gray-600">
             <thead className="bg-gray-50 text-xs uppercase font-medium text-gray-500">
@@ -58,11 +58,8 @@ export default async function AdminEventsPage() {
             </thead>
             <tbody className="divide-y divide-gray-100">
               {events?.map((event) => {
-                // Lógica de Soma dos Lotes no Frontend (Server Side Rendered)
                 const totalSold = event.ticket_batches.reduce((acc, batch) => acc + batch.sold_quantity, 0)
                 const totalCapacity = event.ticket_batches.reduce((acc, batch) => acc + batch.total_quantity, 0)
-                
-                // Cálculo de Receita Estimada (Bruta)
                 const revenueCents = event.ticket_batches.reduce((acc, batch) => acc + (batch.sold_quantity * batch.price_cents), 0)
 
                 return (
@@ -117,6 +114,67 @@ export default async function AdminEventsPage() {
             </tbody>
           </table>
         </div>
+      </div>
+
+      {/* Mobile: Cards de Eventos */}
+      <div className="md:hidden space-y-4">
+        {events?.length === 0 ? (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center text-gray-400">
+            Nenhum evento encontrado. Crie o primeiro!
+          </div>
+        ) : (
+          events?.map((event) => {
+            const totalSold = event.ticket_batches.reduce((acc, batch) => acc + batch.sold_quantity, 0)
+            const totalCapacity = event.ticket_batches.reduce((acc, batch) => acc + batch.total_quantity, 0)
+            const revenueCents = event.ticket_batches.reduce((acc, batch) => acc + (batch.sold_quantity * batch.price_cents), 0)
+
+            return (
+              <div key={event.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+                {/* Header do Card */}
+                <div className="flex items-start justify-between gap-3 mb-3">
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <div className="w-10 h-10 rounded bg-gray-100 flex items-center justify-center text-xl flex-shrink-0">
+                      {event.image_url ? '📷' : '🎵'}
+                    </div>
+                    <div className="min-w-0">
+                      <h3 className="font-medium text-dark-gray truncate">{event.title}</h3>
+                      <div className="flex items-center gap-2 text-sm text-gray-500">
+                        <Calendar size={12} />
+                        <span>{new Date(event.start_date).toLocaleDateString()}</span>
+                        <span className="text-xs">{new Date(event.start_date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <EventActions eventId={event.id} isPastEvent={new Date(event.end_date) < new Date()} />
+                </div>
+
+                {/* Info Grid */}
+                <div className="grid grid-cols-2 gap-3 pt-3 border-t border-gray-100">
+                  <div>
+                    <p className="text-xs text-gray-500 uppercase font-medium mb-1">Vendas</p>
+                    <div className="flex items-center gap-2">
+                      <Users size={14} className="text-gray-400" />
+                      <span className="font-bold text-dark-gray">{totalSold}</span>
+                      <span className="text-gray-400">/ {totalCapacity}</span>
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 uppercase font-medium mb-1">Receita</p>
+                    <div className="flex items-center gap-1 text-green-600 font-medium">
+                      <DollarSign size={12} />
+                      {(revenueCents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Status */}
+                <div className="mt-3 pt-3 border-t border-gray-100">
+                  <StatusBadge status={event.status} />
+                </div>
+              </div>
+            )
+          })
+        )}
       </div>
     </div>
   )
