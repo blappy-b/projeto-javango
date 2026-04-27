@@ -25,11 +25,11 @@ export default async function StaffAssignmentsPage() {
     redirect("/");
   }
 
-  // 2. Busca todos os staffs (e admins, que também podem validar)
+  // 2. Busca apenas staffs (admins veem todos os eventos automaticamente)
   const { data: staffs } = await supabase
     .from("profiles")
     .select("id, email, role")
-    .in("role", ["staff", "admin"])
+    .eq("role", "staff")
     .order("email");
 
   // 3. Busca apenas eventos futuros (published ou draft)

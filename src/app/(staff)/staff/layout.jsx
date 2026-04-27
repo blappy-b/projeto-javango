@@ -2,12 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { createSupabaseBrowser } from "@/lib/supabase";
-import { Ticket, LogOut, Loader2 } from "lucide-react";
+import { Ticket, LogOut, Loader2, ArrowLeft } from "lucide-react";
 
 export default function StaffLayout({ children }) {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const router = useRouter();
   const supabase = createSupabaseBrowser();
 
@@ -33,6 +35,7 @@ export default function StaffLayout({ children }) {
         }
 
         setUser(user);
+        setIsAdmin(profile.role === "admin");
       } catch (error) {
         console.error("Auth error:", error);
         router.replace("/login");
@@ -62,6 +65,15 @@ export default function StaffLayout({ children }) {
       {/* Header */}
       <header className="bg-gray-800/80 backdrop-blur-sm border-b border-gray-700/50 px-4 py-4 flex items-center justify-between sticky top-0 z-50">
         <div className="flex items-center gap-3">
+          {isAdmin && (
+            <Link
+              href="/admin/events"
+              className="p-2 text-gray-400 hover:text-white hover:bg-gray-700/50 rounded-lg transition-colors"
+              title="Voltar ao Admin"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </Link>
+          )}
           <div className="w-10 h-10 rounded-xl bg-red-primary/10 flex items-center justify-center">
             <Ticket className="w-5 h-5 text-red-primary" />
           </div>

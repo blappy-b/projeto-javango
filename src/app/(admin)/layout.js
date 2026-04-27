@@ -3,13 +3,14 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { Calendar, Users, BarChart3, Menu, X, LogOut } from 'lucide-react'
+import { Calendar, Users, BarChart3, Menu, X, LogOut, Ticket } from 'lucide-react'
 import { createSupabaseBrowser } from '@/lib/supabase'
 
 const MENU_ITEMS = [
   { href: '/admin/events', icon: Calendar, label: 'Eventos' },
   { href: '/admin/staff/assignments', icon: Users, label: 'Atribuir Staffs' },
   { href: '/admin/sales', icon: BarChart3, label: 'Vendas' },
+  { href: '/staff', icon: Ticket, label: 'Leitura de Ingressos' },
 ]
 
 export default function AdminLayout({ children }) {
