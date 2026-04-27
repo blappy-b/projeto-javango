@@ -137,9 +137,7 @@ export default function StaffAssignmentManager({ staffs, events, assignments }) 
                     </div>
                     <div className="min-w-0">
                       <p className="font-bold text-gray-900 truncate text-sm md:text-base">{staff.email}</p>
-                      <p className="text-xs text-gray-500 uppercase">
-                        {staff.role === "admin" ? "Admin" : "Staff"}
-                      </p>
+                      <p className="text-xs text-gray-500 uppercase">Staff</p>
                     </div>
                   </div>
                   <div
