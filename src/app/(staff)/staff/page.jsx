@@ -36,8 +36,9 @@ export default function StaffPage() {
           const { data: events } = await supabase
             .from("events")
             .select("id, title, start_date, location")
-            .in("status", ["published", "ended"])
-            .order("start_date", { ascending: false });
+            .eq("status", "published")
+            .gte("start_date", new Date().toISOString())
+            .order("start_date", { ascending: true });
 
           setAssignedEvents(events || []);
           if (events?.length > 0) {
