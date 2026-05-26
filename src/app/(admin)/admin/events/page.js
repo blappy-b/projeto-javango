@@ -6,13 +6,18 @@ import EventActions from '@/components/admin/EventActions'
 // Força a página a ser dinâmica (sem cache estático), pois os dados mudam
 export const dynamic = 'force-dynamic'
 
-// Calcula a separação entre taxa de serviço e taxa do MP
-function calculateFeeSplit(paidPriceCents, paidFeeCents, serviceFeePercent = 0, minServiceFeeCents = 0) {
-  let serviceFee = Math.round((paidPriceCents * serviceFeePercent) / 100)
-  if (serviceFee < minServiceFeeCents) {
-    serviceFee = minServiceFeeCents
-  }
-  const mpFee = Math.max(0, paidFeeCents - serviceFee)
+// Taxa do Mercado Pago (mesmo valor usado em price.js)
+const MP_RATE_PERCENT = 4.9
+
+// Calcula a taxa do MP (4,9% do total cobrado)
+function calculateFeeSplit(paidPriceCents, paidFeeCents) {
+  const basePrice = Number(paidPriceCents) || 0
+  const totalFee = Number(paidFeeCents) || 0
+  const totalCharged = basePrice + totalFee
+  
+  const mpFee = Math.round(totalCharged * MP_RATE_PERCENT / 100)
+  const serviceFee = Math.max(0, totalFee - mpFee)
+  
   return { serviceFee, mpFee }
 }
 
@@ -28,9 +33,7 @@ export default async function AdminEventsPage() {
         id,
         sold_quantity,
         total_quantity,
-        price_cents,
-        service_fee_percent,
-        min_service_fee_cents
+        price_cents
       ),
       tickets (
         id,
@@ -48,34 +51,23 @@ export default async function AdminEventsPage() {
 
   // Processa eventos para calcular vendas reais
   const eventsWithSales = events?.map(event => {
-    // Cria um mapa dos lotes para acesso rápido
-    const batchMap = {}
-    for (const batch of event.ticket_batches || []) {
-      batchMap[batch.id] = batch
-    }
-
-    // Filtra apenas tickets válidos (não reembolsados)
-    const validTickets = (event.tickets || []).filter(t => t.status !== 'refunded')
+    // Filtra apenas tickets válidos (valid ou used)
+    const validTickets = (event.tickets || []).filter(t => t.status === 'valid' || t.status === 'used')
     
     // Calcula totais reais baseados nos tickets vendidos
     const salesData = validTickets.reduce((acc, ticket) => {
-      const paidPrice = ticket.paid_price_cents || 0
-      const paidFee = ticket.paid_fee_cents || 0
-      const batch = batchMap[ticket.batch_id]
+      const paidPrice = Number(ticket.paid_price_cents) || 0
+      const paidFee = Number(ticket.paid_fee_cents) || 0
+      const totalCharged = paidPrice + paidFee
       
-      const { serviceFee, mpFee } = calculateFeeSplit(
-        paidPrice,
-        paidFee,
-        batch?.service_fee_percent || 0,
-        batch?.min_service_fee_cents || 0
-      )
+      const { serviceFee, mpFee } = calculateFeeSplit(paidPrice, paidFee)
       
       return {
         basePrice: acc.basePrice + paidPrice,
         serviceFee: acc.serviceFee + serviceFee,
         mpFee: acc.mpFee + mpFee,
-        netReceived: acc.netReceived + paidPrice + serviceFee, // O que você recebe
-        grossRevenue: acc.grossRevenue + paidPrice + paidFee,  // Total bruto
+        netReceived: acc.netReceived + (totalCharged - mpFee), // Total - taxa MP
+        grossRevenue: acc.grossRevenue + totalCharged,
         ticketsSold: acc.ticketsSold + 1,
       }
     }, { basePrice: 0, serviceFee: 0, mpFee: 0, netReceived: 0, grossRevenue: 0, ticketsSold: 0 })
