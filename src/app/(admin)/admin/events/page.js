@@ -1,23 +1,43 @@
 import Link from 'next/link'
 import { createSupabaseServer } from '@/lib/supabase-server'
-import { Plus, Calendar, DollarSign, Users, MoreHorizontal, Clock, History } from 'lucide-react'
+import { Plus, Calendar, DollarSign, Users, MoreHorizontal, Clock, History, Percent } from 'lucide-react'
 import EventActions from '@/components/admin/EventActions'
 
 // Força a página a ser dinâmica (sem cache estático), pois os dados mudam
 export const dynamic = 'force-dynamic'
 
+// Calcula a separação entre taxa de serviço e taxa do MP
+function calculateFeeSplit(paidPriceCents, paidFeeCents, serviceFeePercent = 0, minServiceFeeCents = 0) {
+  let serviceFee = Math.round((paidPriceCents * serviceFeePercent) / 100)
+  if (serviceFee < minServiceFeeCents) {
+    serviceFee = minServiceFeeCents
+  }
+  const mpFee = Math.max(0, paidFeeCents - serviceFee)
+  return { serviceFee, mpFee }
+}
+
 export default async function AdminEventsPage() {
   const supabase = await createSupabaseServer()
 
-  // 1. Busca eventos e faz o Join com os Lotes para saber as vendas
+  // 1. Busca eventos com lotes e tickets para calcular vendas reais
   const { data: events, error } = await supabase
     .from('events')
     .select(`
       *,
       ticket_batches (
+        id,
         sold_quantity,
         total_quantity,
-        price_cents
+        price_cents,
+        service_fee_percent,
+        min_service_fee_cents
+      ),
+      tickets (
+        id,
+        batch_id,
+        paid_price_cents,
+        paid_fee_cents,
+        status
       )
     `)
     .order('start_date', { ascending: false })
@@ -26,10 +46,54 @@ export default async function AdminEventsPage() {
     return <div className="p-8 text-red-primary">Erro ao carregar eventos: {error.message}</div>
   }
 
+  // Processa eventos para calcular vendas reais
+  const eventsWithSales = events?.map(event => {
+    // Cria um mapa dos lotes para acesso rápido
+    const batchMap = {}
+    for (const batch of event.ticket_batches || []) {
+      batchMap[batch.id] = batch
+    }
+
+    // Filtra apenas tickets válidos (não reembolsados)
+    const validTickets = (event.tickets || []).filter(t => t.status !== 'refunded')
+    
+    // Calcula totais reais baseados nos tickets vendidos
+    const salesData = validTickets.reduce((acc, ticket) => {
+      const paidPrice = ticket.paid_price_cents || 0
+      const paidFee = ticket.paid_fee_cents || 0
+      const batch = batchMap[ticket.batch_id]
+      
+      const { serviceFee, mpFee } = calculateFeeSplit(
+        paidPrice,
+        paidFee,
+        batch?.service_fee_percent || 0,
+        batch?.min_service_fee_cents || 0
+      )
+      
+      return {
+        basePrice: acc.basePrice + paidPrice,
+        serviceFee: acc.serviceFee + serviceFee,
+        mpFee: acc.mpFee + mpFee,
+        netReceived: acc.netReceived + paidPrice + serviceFee, // O que você recebe
+        grossRevenue: acc.grossRevenue + paidPrice + paidFee,  // Total bruto
+        ticketsSold: acc.ticketsSold + 1,
+      }
+    }, { basePrice: 0, serviceFee: 0, mpFee: 0, netReceived: 0, grossRevenue: 0, ticketsSold: 0 })
+
+    // Calcula capacidade total dos lotes
+    const totalCapacity = event.ticket_batches.reduce((acc, batch) => acc + batch.total_quantity, 0)
+
+    return {
+      ...event,
+      salesData,
+      totalCapacity,
+    }
+  }) || []
+
   // Separa eventos futuros e passados
   const now = new Date()
-  const upcomingEvents = events?.filter(event => new Date(event.end_date) >= now) || []
-  const pastEvents = events?.filter(event => new Date(event.end_date) < now) || []
+  const upcomingEvents = eventsWithSales.filter(event => new Date(event.end_date) >= now)
+  const pastEvents = eventsWithSales.filter(event => new Date(event.end_date) < now)
 
   // Ordena eventos futuros por data (mais próximos primeiro)
   upcomingEvents.sort((a, b) => new Date(a.start_date) - new Date(b.start_date))
@@ -94,16 +158,20 @@ function EventsTable({ events, emptyMessage, isPast = false }) {
             <tr>
               <th className="px-6 py-4">Evento</th>
               <th className="px-6 py-4">Data</th>
-              <th className="px-6 py-4">Vendas (Ingressos)</th>
+              <th className="px-6 py-4">Vendas</th>
+              <th className="px-6 py-4">Recebido</th>
               <th className="px-6 py-4">Status</th>
               <th className="px-6 py-4 text-right">Ações</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
             {events?.map((event) => {
-              const totalSold = event.ticket_batches.reduce((acc, batch) => acc + batch.sold_quantity, 0)
-              const totalCapacity = event.ticket_batches.reduce((acc, batch) => acc + batch.total_quantity, 0)
-              const revenueCents = event.ticket_batches.reduce((acc, batch) => acc + (batch.sold_quantity * batch.price_cents), 0)
+              // Usa dados pré-calculados de vendas reais
+              const { salesData, totalCapacity } = event
+              const totalSold = salesData.ticketsSold
+              const netReceived = salesData.netReceived
+              const serviceFee = salesData.serviceFee
+              const mpFee = salesData.mpFee
 
               return (
                 <tr key={event.id} className="hover:bg-gray-50 transition">
@@ -124,15 +192,25 @@ function EventsTable({ events, emptyMessage, isPast = false }) {
                   </td>
 
                   <td className="px-6 py-4">
+                    <div className="flex items-center gap-2">
+                      <Users size={14} />
+                      <span className="font-bold">{totalSold}</span> 
+                      <span className="text-gray-400">/ {totalCapacity}</span>
+                    </div>
+                  </td>
+
+                  <td className="px-6 py-4">
                     <div className="flex flex-col gap-1">
-                      <div className="flex items-center gap-2">
-                        <Users size={14} />
-                        <span className="font-bold">{totalSold}</span> / {totalCapacity}
+                      <div className="text-green-600 font-bold flex items-center gap-1">
+                        <DollarSign size={14} />
+                        {(netReceived / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                       </div>
-                      <div className="text-xs text-green-600 font-medium flex items-center gap-1">
-                        <DollarSign size={10} />
-                        {(revenueCents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                      </div>
+                      {serviceFee > 0 && (
+                        <div className="text-xs text-purple-500 flex items-center gap-1">
+                          <Percent size={10} />
+                          +{(serviceFee / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} serviço
+                        </div>
+                      )}
                     </div>
                   </td>
 
@@ -149,7 +227,7 @@ function EventsTable({ events, emptyMessage, isPast = false }) {
 
             {events?.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-6 py-12 text-center text-gray-400">
+                <td colSpan={6} className="px-6 py-12 text-center text-gray-400">
                   {emptyMessage || 'Nenhum evento encontrado.'}
                 </td>
               </tr>
@@ -171,9 +249,11 @@ function EventsCards({ events, emptyMessage, isPast = false }) {
         </div>
       ) : (
         events?.map((event) => {
-          const totalSold = event.ticket_batches.reduce((acc, batch) => acc + batch.sold_quantity, 0)
-          const totalCapacity = event.ticket_batches.reduce((acc, batch) => acc + batch.total_quantity, 0)
-          const revenueCents = event.ticket_batches.reduce((acc, batch) => acc + (batch.sold_quantity * batch.price_cents), 0)
+          // Usa dados pré-calculados de vendas reais
+          const { salesData, totalCapacity } = event
+          const totalSold = salesData.ticketsSold
+          const netReceived = salesData.netReceived
+          const serviceFee = salesData.serviceFee
 
           return (
             <div key={event.id} className={`bg-white rounded-xl shadow-sm border p-4 ${isPast ? 'border-gray-100 opacity-80' : 'border-gray-200'}`}>
@@ -198,7 +278,7 @@ function EventsCards({ events, emptyMessage, isPast = false }) {
               {/* Info Grid */}
               <div className="grid grid-cols-2 gap-3 pt-3 border-t border-gray-100">
                 <div>
-                  <p className="text-xs text-gray-500 uppercase font-medium mb-1">Vendas</p>
+                  <p className="text-xs text-gray-500 uppercase font-medium mb-1">Ingressos</p>
                   <div className="flex items-center gap-2">
                     <Users size={14} className="text-gray-400" />
                     <span className="font-bold text-dark-gray">{totalSold}</span>
@@ -206,10 +286,17 @@ function EventsCards({ events, emptyMessage, isPast = false }) {
                   </div>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-500 uppercase font-medium mb-1">Receita</p>
-                  <div className="flex items-center gap-1 text-green-600 font-medium">
-                    <DollarSign size={12} />
-                    {(revenueCents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                  <p className="text-xs text-gray-500 uppercase font-medium mb-1">Recebido</p>
+                  <div className="flex flex-col gap-0.5">
+                    <div className="flex items-center gap-1 text-green-600 font-bold">
+                      <DollarSign size={12} />
+                      {(netReceived / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                    </div>
+                    {serviceFee > 0 && (
+                      <span className="text-xs text-purple-500">
+                        +{(serviceFee / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} serviço
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
