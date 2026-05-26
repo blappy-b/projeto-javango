@@ -3,13 +3,14 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
-import { MoreHorizontal, Edit, Trash2, Loader2, Eye } from "lucide-react";
+import { MoreHorizontal, Edit, Trash2, Loader2, Eye, Download } from "lucide-react";
 import { deleteEventAction } from "@/actions/events";
 
 export default function EventActions({ eventId, isPastEvent = false }) {
   const btnRef = useRef(null);
   const [isOpen, setIsOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   const [pos, setPos] = useState({ top: 0, left: 0, width: 0 });
 
   const handleDelete = async () => {
@@ -23,6 +24,39 @@ export default function EventActions({ eventId, isPastEvent = false }) {
 
     setIsDeleting(false);
     setIsOpen(false);
+  };
+
+  const handleExport = async () => {
+    setIsExporting(true);
+    try {
+      const response = await fetch(`/api/admin/events/${eventId}/export`);
+      
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Erro ao exportar");
+      }
+
+      // Criar blob e fazer download
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      
+      // Extrair nome do arquivo do header ou usar padrão
+      const contentDisposition = response.headers.get("Content-Disposition");
+      const fileNameMatch = contentDisposition?.match(/filename="(.+)"/);
+      a.download = fileNameMatch ? fileNameMatch[1] : `compras_${eventId}.xlsx`;
+      
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      alert(error.message || "Erro ao exportar compras");
+    } finally {
+      setIsExporting(false);
+      setIsOpen(false);
+    }
   };
 
   // calcula posição do dropdown quando abre + quando scroll/resize
@@ -95,6 +129,15 @@ export default function EventActions({ eventId, isPastEvent = false }) {
                   <Edit size={16} /> Editar Evento
                 </Link>
               )}
+
+              <button
+                onClick={handleExport}
+                disabled={isExporting}
+                className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-green-600 text-left disabled:opacity-60"
+              >
+                {isExporting ? <Loader2 className="animate-spin" size={16} /> : <Download size={16} />}
+                {isExporting ? "Exportando..." : "Exportar Compras"}
+              </button>
 
               <button
                 onClick={handleDelete}
