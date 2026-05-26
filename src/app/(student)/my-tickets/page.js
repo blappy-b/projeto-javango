@@ -1,6 +1,8 @@
 import { createSupabaseServer } from "@/lib/supabase-server";
 import TicketCard from "@/components/tickets/TicketCard";
-import { Ticket } from "lucide-react";
+import RefreshButton from "@/components/tickets/RefreshButton";
+import LogoutButton from "@/components/tickets/LogoutButton";
+import { Ticket, Clock, ShoppingBag } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
@@ -35,6 +37,20 @@ export default async function MyTicketsPage({ searchParams }) {
     .gte("events.start_date", new Date().toISOString())
     .order("purchased_at", { ascending: false });
 
+  // 3. Busca Ordens Pendentes (PIX aguardando pagamento)
+  const { data: pendingOrders } = await supabase
+    .from("orders")
+    .select(`
+      *,
+      events (
+        title,
+        start_date
+      )
+    `)
+    .eq("user_id", user.id)
+    .eq("status", "pending")
+    .order("created_at", { ascending: false });
+
   // DEBUG: Log para investigar
   if (error) {
     console.error("Erro ao buscar tickets:", error);
@@ -51,6 +67,18 @@ export default async function MyTicketsPage({ searchParams }) {
     <div className="min-h-screen bg-gray-50 py-12 px-4">
       <div className="max-w-4xl mx-auto space-y-8">
         
+        {/* Navigation Bar */}
+        <div className="flex items-center justify-between">
+          <Link
+            href="/"
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-red-primary hover:bg-red-600 rounded-lg transition"
+          >
+            <ShoppingBag size={16} />
+            Comprar Ingressos
+          </Link>
+          <LogoutButton />
+        </div>
+
         {/* Header */}
         <div>
           <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
@@ -74,9 +102,49 @@ export default async function MyTicketsPage({ searchParams }) {
         )}
 
         {showPendingMessage && (
-          <div className="bg-yellow-100 border border-yellow-200 text-yellow-800 p-4 rounded-xl">
-            <p className="font-bold">Pagamento em Processamento</p>
-            <p className="text-sm">Assim que o banco confirmar, seus ingressos aparecerão aqui. Atualize a página em alguns instantes.</p>
+          <div className="bg-yellow-100 border border-yellow-200 text-yellow-800 p-4 rounded-xl flex items-center gap-3">
+            <div className="bg-yellow-200 p-2 rounded-full">⏳</div>
+            <div>
+              <p className="font-bold">Aguardando Pagamento PIX</p>
+              <p className="text-sm">
+                Se você pagou via PIX, aguarde alguns segundos e atualize a página. 
+                Os ingressos aparecerão assim que o pagamento for confirmado.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Ordens Pendentes (PIX aguardando) */}
+        {pendingOrders?.length > 0 && (
+          <div className="space-y-4">
+            <h2 className="text-lg font-bold text-gray-700 flex items-center gap-2">
+              <Clock className="text-yellow-600" size={20} />
+              Pagamentos Pendentes
+            </h2>
+            {pendingOrders.map((order) => (
+              <div 
+                key={order.id} 
+                className="bg-yellow-50 border border-yellow-200 p-4 rounded-xl flex items-center justify-between"
+              >
+                <div>
+                  <p className="font-semibold text-gray-800">
+                    {order.events?.title || "Evento"}
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    Aguardando confirmação do pagamento PIX
+                  </p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    Pedido: {order.id.substring(0, 8)}... • {new Date(order.created_at).toLocaleDateString('pt-BR')}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-lg font-bold text-gray-700">
+                    R$ {(order.total_amount_cents / 100).toFixed(2).replace('.', ',')}
+                  </span>
+                  <RefreshButton />
+                </div>
+              </div>
+            ))}
           </div>
         )}
 
