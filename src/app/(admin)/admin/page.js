@@ -3,20 +3,25 @@ import { DollarSign, Users, Calendar, Percent } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
 
-// Calcula a separação entre taxa de serviço e taxa do MP
-function calculateFeeSplit(paidPriceCents, paidFeeCents, serviceFeePercent = 0, minServiceFeeCents = 0) {
-  let serviceFee = Math.round((paidPriceCents * serviceFeePercent) / 100)
-  if (serviceFee < minServiceFeeCents) {
-    serviceFee = minServiceFeeCents
-  }
-  const mpFee = Math.max(0, paidFeeCents - serviceFee)
+// Taxa do Mercado Pago (mesmo valor usado em price.js)
+const MP_RATE_PERCENT = 4.9
+
+// Calcula a taxa do MP (4,9% do total cobrado)
+function calculateFeeSplit(paidPriceCents, paidFeeCents) {
+  const basePrice = Number(paidPriceCents) || 0
+  const totalFee = Number(paidFeeCents) || 0
+  const totalCharged = basePrice + totalFee
+  
+  const mpFee = Math.round(totalCharged * MP_RATE_PERCENT / 100)
+  const serviceFee = Math.max(0, totalFee - mpFee)
+  
   return { serviceFee, mpFee }
 }
 
 export default async function AdminDashboard() {
   const supabase = await createSupabaseServer()
 
-  // Busca todos os tickets válidos com dados do lote
+  // Busca tickets pagos (valid = pago, used = já utilizado)
   const { data: tickets, error: ticketsError } = await supabase
     .from('tickets')
     .select(`
@@ -26,14 +31,9 @@ export default async function AdminDashboard() {
       status,
       purchased_at,
       event_id,
-      batch_id,
-      ticket_batches (
-        id,
-        service_fee_percent,
-        min_service_fee_cents
-      )
+      batch_id
     `)
-    .neq('status', 'refunded')
+    .in('status', ['valid', 'used'])
 
   // Busca todos os eventos
   const { data: events, error: eventsError } = await supabase
@@ -43,18 +43,17 @@ export default async function AdminDashboard() {
 
   // Processa tickets para calcular taxas separadas
   const processedTickets = (tickets || []).map(ticket => {
-    const batch = ticket.ticket_batches
-    const { serviceFee, mpFee } = calculateFeeSplit(
-      ticket.paid_price_cents || 0,
-      ticket.paid_fee_cents || 0,
-      batch?.service_fee_percent || 0,
-      batch?.min_service_fee_cents || 0
-    )
+    const paidPrice = Number(ticket.paid_price_cents) || 0
+    const paidFee = Number(ticket.paid_fee_cents) || 0
+    const totalCharged = paidPrice + paidFee
+    
+    const { serviceFee, mpFee } = calculateFeeSplit(paidPrice, paidFee)
+    
     return {
       ...ticket,
       serviceFee,
       mpFee,
-      netReceived: (ticket.paid_price_cents || 0) + serviceFee,
+      netReceived: totalCharged - mpFee,
     }
   })
 
