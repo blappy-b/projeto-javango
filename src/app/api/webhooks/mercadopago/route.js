@@ -9,14 +9,17 @@ const supabaseAdmin = createClient(
 
 const PAYMENT_STATUS_TO_ORDER_STATUS = {
   approved: "approved",
-  pending: "pending",
-  in_process: "pending",
-  in_mediation: "pending",
+  pending: "pending",       // PIX aguardando pagamento
+  in_process: "pending",    // Em processamento
+  in_mediation: "pending",  // Em mediação
   rejected: "rejected",
   cancelled: "cancelled",
   refunded: "cancelled",
   charged_back: "cancelled",
 };
+
+// Métodos de pagamento que geram status pending válido (como PIX)
+const PENDING_VALID_METHODS = ["pix", "bank_transfer", "ticket"];
 
 function extractNotificationPayload(requestUrl, body) {
   const url = new URL(requestUrl);
@@ -86,15 +89,22 @@ export async function POST(request) {
     }
 
     const mappedOrderStatus = PAYMENT_STATUS_TO_ORDER_STATUS[payment?.status] || "pending";
+    const paymentMethod = payment?.payment_method_id || payment?.payment_type_id;
+
+    // Log detalhado para debug de pagamentos PIX
+    console.log(`[Webhook] Pagamento ${payment?.id}: status=${payment?.status}, método=${paymentMethod}, order=${orderId}`);
 
     if (mappedOrderStatus !== "approved") {
+      // Para PIX pendente, armazenamos também o método de pagamento
+      const updateData = {
+        status: mappedOrderStatus,
+        mp_payment_id: String(payment?.id ?? id),
+        updated_at: new Date().toISOString(),
+      };
+
       const { error: updateOrderError } = await supabaseAdmin
         .from("orders")
-        .update({
-          status: mappedOrderStatus,
-          mp_payment_id: String(payment?.id ?? id),
-          updated_at: new Date().toISOString(),
-        })
+        .update(updateData)
         .eq("id", order.id);
 
       if (updateOrderError) {
@@ -102,11 +112,42 @@ export async function POST(request) {
         return NextResponse.json({ error: "Failed to update order status" }, { status: 500 });
       }
 
-      return NextResponse.json({ status: "success", order_status: mappedOrderStatus });
+      // Para PIX pendente, retornamos sucesso com informação adicional
+      if (paymentMethod === "pix" && mappedOrderStatus === "pending") {
+        console.log(`[Webhook] PIX pendente - aguardando pagamento para order ${orderId}`);
+      }
+
+      return NextResponse.json({ 
+        status: "success", 
+        order_status: mappedOrderStatus,
+        payment_method: paymentMethod 
+      });
     }
 
     if (order.status === "approved") {
       return NextResponse.json({ status: "already_processed" });
+    }
+
+    // Verificação adicional: checar se tickets já existem para essa ordem
+    // Isso previne race condition quando múltiplos webhooks chegam simultaneamente
+    const { data: existingTickets } = await supabaseAdmin
+      .from("tickets")
+      .select("id")
+      .eq("order_id", order.id)
+      .limit(1);
+
+    if (existingTickets && existingTickets.length > 0) {
+      console.log(`[Webhook] Tickets já existem para order ${orderId} - pulando criação duplicada`);
+      // Atualiza status para approved se ainda não estiver
+      await supabaseAdmin
+        .from("orders")
+        .update({
+          status: "approved",
+          mp_payment_id: String(payment?.id ?? id),
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", order.id);
+      return NextResponse.json({ status: "already_processed_tickets_exist" });
     }
 
     const items = order.items_snapshot || [];
