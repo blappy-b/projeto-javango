@@ -5,11 +5,11 @@ export const formatCurrency = (cents) => {
   }).format(cents / 100);
 };
 
-// CONFIGURAÇÃO DE TAXAS DO MERCADO PAGO (Exemplo: Checkout Pro)
-// Verifique no seu painel do MP em "Custos". 
-// Exemplo comum: 4.99% + R$ 0,49 por transação.
-const MP_RATE_PERCENT = 4.99; 
-const MP_FIXED_CENTS = 49; 
+// CONFIGURAÇÃO DE TAXAS DO MERCADO PAGO
+// Verifique no seu painel do MP em "Custos".
+// Taxa atual: 4,9% (sem taxa fixa).
+const MP_RATE_PERCENT = 4.9; 
+const MP_FIXED_CENTS = 0; 
 
 /**
  * Calcula o preço final para garantir "Custo Zero" real.
