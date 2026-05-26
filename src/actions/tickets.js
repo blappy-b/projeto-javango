@@ -98,9 +98,22 @@ export async function buyTicketsBulkAction(eventId, cartItems) {
         pending: `${process.env.NEXT_PUBLIC_BASE_URL}/my-tickets?status=pending`,
       },
       notification_url: `${process.env.NEXT_PUBLIC_BASE_URL}/api/webhooks/mercadopago`,
+      // Expiração da preferência (24 horas para dar tempo do PIX)
+      expires: true,
+      expiration_date_from: new Date().toISOString(),
+      expiration_date_to: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+      // Descrição que aparece no extrato
+      statement_descriptor: "JAVANGO",
     };
 
     const preference = await mpPreference.create({ body: preferenceData });
+
+    // Log para debug - verificar métodos de pagamento disponíveis
+    console.log("Preference criada:", {
+      id: preference.id,
+      init_point: preference.init_point,
+      payment_methods: preference.payment_methods,
+    });
 
     return {
       success: true,
