@@ -23,6 +23,7 @@ export default function EventCard({ event }) {
         
         <div className="space-y-2 mb-4 flex-1">
           <div className="flex items-center text-gray-500 text-sm">
+            <Image src="/logo.png" alt="Javango" width={16} height={16} className="mr-2 rounded-sm" />
             <Calendar size={16} className="mr-2" />
             {date}
           </div>

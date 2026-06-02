@@ -4,8 +4,12 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata = {
-  title: "MusicEvent",
+  title: "Javango Jango",
   description: "Sistema de venda de ingressos",
+  icons: {
+    icon: "/favicon.ico",
+    apple: "/logo.png",
+  },
 };
 
 export default function RootLayout({ children }) {
