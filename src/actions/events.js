@@ -32,6 +32,7 @@ const eventSchema = z.object({
         price: z.coerce.number().min(0, "O preço não pode ser negativo"),
         quantity: z.coerce.number().min(1, "Quantidade mínima é 1"),
         fee_percent: z.coerce.number().min(0).default(10),
+        batch_end_date: z.string().optional(), // Data de expiração do lote
       })
     )
     .min(1, "Crie pelo menos um tipo de ingresso"),
@@ -93,6 +94,7 @@ const updateEventSchema = z.object({
       quantity: z.coerce.number().min(1),
       fee_percent: z.coerce.number().min(0).default(10),
       quantity_sold: z.coerce.number().optional().default(0),
+      batch_end_date: z.string().optional(), // Data de expiração do lote
     })
   ).min(1),
 });
@@ -175,6 +177,7 @@ export async function createEventAction(prevState, formData) {
       service_fee_percent: Number(batch.fee_percent ?? 10),
       min_service_fee_cents: 200,
       is_active: true,
+      end_date: batch.batch_end_date || null, // Data de expiração do lote
     }));
 
     // 5. Inserir Lotes
@@ -330,6 +333,7 @@ export async function updateEventAction(eventId, formData) {
         service_fee_percent: b.fee_percent,
         min_service_fee_cents: 200,
         is_active: true,
+        end_date: b.batch_end_date || null, // Data de expiração do lote
       }));
 
       const { error } = await supabase
@@ -337,6 +341,20 @@ export async function updateEventAction(eventId, formData) {
         .insert(payload);
 
       if (error) throw error;
+    }
+
+    // 5. Atualizar data de expiração de lotes existentes
+    const existingBatches = batches.filter(b => b.dbId);
+    for (const batch of existingBatches) {
+      const { error: updateError } = await supabase
+        .from("ticket_batches")
+        .update({ end_date: batch.batch_end_date || null })
+        .eq("id", batch.dbId)
+        .eq("event_id", eventId);
+
+      if (updateError) {
+        console.error("Erro ao atualizar data de expiração do lote:", updateError);
+      }
     }
 
     revalidatePath("/admin/events");

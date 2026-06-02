@@ -91,6 +91,12 @@ export default function TicketSelection({ eventId, batches }) {
   // Filtra apenas lotes ativos
   const activeBatches = batches.filter((b) => b.is_active);
 
+  // Função para verificar se o lote expirou
+  const isExpired = (batch) => {
+    if (!batch.end_date) return false;
+    return new Date(batch.end_date) < new Date();
+  };
+
   return (
     <>
       <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm sticky top-8">
@@ -107,18 +113,17 @@ export default function TicketSelection({ eventId, batches }) {
           ) : (
             activeBatches.map((batch) => {
               const pricing = calculateFinalPrice(batch);
-              console.log(batch)
               const available = batch.total_quantity - batch.sold_quantity;
+              const batchExpired = isExpired(batch);
               const isSoldOut = available <= 0;
+              const isUnavailable = isSoldOut || batchExpired;
               const currentQty = cart[batch.id] || 0;
-
-              console.log(pricing)
 
               return (
                 <div
                   key={batch.id}
                   className={`border-b border-gray-100 last:border-0 pb-6 last:pb-0 ${
-                    isSoldOut ? "opacity-50 grayscale" : ""
+                    isUnavailable ? "opacity-50 grayscale" : ""
                   }`}
                 >
                   <div className="flex justify-between items-start mb-2">
@@ -127,15 +132,26 @@ export default function TicketSelection({ eventId, batches }) {
                         {batch.name}
                       </h4>
                       {/* Badge de Escassez */}
-                      {!isSoldOut && available < 10 && (
+                      {!isUnavailable && available < 10 && (
                         <span className="text-xs font-bold text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full">
                           Restam apenas {available}!
                         </span>
                       )}
-                      {isSoldOut && (
+                      {batchExpired && (
+                        <span className="text-xs font-bold text-gray-600 bg-gray-100 px-2 py-0.5 rounded-full">
+                          Encerrado
+                        </span>
+                      )}
+                      {isSoldOut && !batchExpired && (
                         <span className="text-xs font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded-full">
                           Esgotado
                         </span>
+                      )}
+                      {/* Mostra data de expiração se houver */}
+                      {batch.end_date && !batchExpired && (
+                        <p className="text-xs text-gray-500 mt-1">
+                          Disponível até {new Date(batch.end_date).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                        </p>
                       )}
                     </div>
                     <div className="text-right">
@@ -156,7 +172,7 @@ export default function TicketSelection({ eventId, batches }) {
                   <div className="flex items-center justify-end gap-3 mt-3">
                     <button
                       onClick={() => updateQuantity(batch.id, -1, available)}
-                      disabled={currentQty === 0 || isSoldOut || isProcessing}
+                      disabled={currentQty === 0 || isUnavailable || isProcessing}
                       className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center text-gray-600 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition"
                     >
                       <Minus size={16} />
@@ -169,7 +185,7 @@ export default function TicketSelection({ eventId, batches }) {
                     <button
                       onClick={() => updateQuantity(batch.id, 1, available)}
                       disabled={
-                        currentQty >= available || isSoldOut || isProcessing
+                        currentQty >= available || isUnavailable || isProcessing
                       }
                       className="w-8 h-8 rounded-full bg-gray-900 text-white flex items-center justify-center hover:bg-black disabled:opacity-30 disabled:cursor-not-allowed transition"
                     >

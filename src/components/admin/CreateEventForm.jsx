@@ -40,8 +40,9 @@ const formSchema = z.object({
       name: z.string().min(1, "Nome do lote"),
       price: z.coerce.number().min(0),
       quantity: z.coerce.number().min(1),
-      quantity_sold: z.coerce.number().optional().default(0), // ✅ NOVO
+      quantity_sold: z.coerce.number().optional().default(0),
       fee_percent: z.coerce.number().min(0),
+      batch_end_date: z.string().optional(), // Data de expiração do lote
     })
   ),
 });
@@ -79,6 +80,7 @@ export default function CreateEventForm({ initialData = null }) {
             quantity: b.total_quantity,
             quantity_sold: b.sold_quantity,
             fee_percent: b.service_fee_percent,
+            batch_end_date: b.end_date ? new Date(b.end_date).toISOString().slice(0, 16) : "",
           })),
         }
       : {
@@ -91,6 +93,7 @@ export default function CreateEventForm({ initialData = null }) {
               price: 0,
               quantity: 50,
               fee_percent: 10,
+              batch_end_date: "",
             },
           ],
         },
@@ -327,6 +330,7 @@ export default function CreateEventForm({ initialData = null }) {
                   quantity: 1,
                   fee_percent: 10,
                   quantity_sold: 0,
+                  batch_end_date: "",
                 })
               }
               className="inline-flex items-center gap-2 text-sm font-semibold text-blue-600 hover:underline"
@@ -431,6 +435,18 @@ export default function CreateEventForm({ initialData = null }) {
                         : ""
                     }`}
                   />
+                </div>
+
+                <div className="w-full md:w-44">
+                  <label className="text-xs text-gray-500 font-medium">
+                    Expira em
+                  </label>
+                  <input
+                    type="datetime-local"
+                    {...register(`batches.${index}.batch_end_date`)}
+                    className="w-full p-2 border rounded-md text-sm"
+                  />
+                  <p className="text-[10px] text-gray-400 mt-0.5">Opcional</p>
                 </div>
 
                 <button

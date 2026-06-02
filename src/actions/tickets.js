@@ -36,6 +36,11 @@ export async function buyTicketsBulkAction(eventId, cartItems) {
 
       if (!batch) throw new Error("Lote inválido");
 
+      // Valida se o lote expirou
+      if (batch.end_date && new Date(batch.end_date) < new Date()) {
+        throw new Error(`O lote "${batch.name}" não está mais disponível para venda`);
+      }
+
       if (batch.total_quantity - batch.sold_quantity < quantity) {
         throw new Error(`Estoque insuficiente para ${batch.name}`);
       }
