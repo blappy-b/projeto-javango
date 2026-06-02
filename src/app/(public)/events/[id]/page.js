@@ -74,7 +74,7 @@ export default async function EventDetailsPage({ params }) {
         )}
         <div className="absolute inset-0 bg-linear-to-t from-gray-900 to-transparent" />
 
-        <div className="relative z-10 text-center px-4 max-w-4xl">
+        <div className="relative z-10 text-center px-4 max-w-5xl">
           {/* Tag de Status */}
           {event.status !== "published" && (
             <span className="inline-block px-3 py-1 mb-4 rounded-full bg-yellow-500 text-yellow-950 font-bold text-xs uppercase tracking-wider">
