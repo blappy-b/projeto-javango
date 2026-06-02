@@ -30,6 +30,7 @@ const formSchema = z.object({
   title: z.string().min(3, "Título obrigatório"),
   description: z.string().optional(),
   image_url: z.string().optional().refine(isValidUrl, { message: "URL de imagem inválida" }),
+  banner_image_url: z.string().optional().refine(isValidUrl, { message: "URL de imagem de banner inválida" }),
   location: z.string().min(3, "Local obrigatório"),
   start_date: z.string().min(1, "Data de início obrigatória"),
   end_date: z.string().min(1, "Data de fim obrigatória"),
@@ -48,6 +49,7 @@ const formSchema = z.object({
 export default function CreateEventForm({ initialData = null }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedImageFile, setSelectedImageFile] = useState(null);
+  const [selectedBannerFile, setSelectedBannerFile] = useState(null);
   const router = useRouter();
 
   const isEditMode = !!initialData;
@@ -64,6 +66,7 @@ export default function CreateEventForm({ initialData = null }) {
           title: initialData.title,
           description: initialData.description || "",
           image_url: initialData.image_url || "",
+          banner_image_url: initialData.banner_image_url || "",
           location: initialData.location,
           start_date: new Date(initialData.start_date)
             .toISOString()
@@ -81,6 +84,7 @@ export default function CreateEventForm({ initialData = null }) {
       : {
           // Valores padrão para criar novo
           image_url: "",
+          banner_image_url: "",
           batches: [
             {
               name: "Ingresso Padrão",
@@ -108,8 +112,12 @@ export default function CreateEventForm({ initialData = null }) {
       formData.append("description", data.description || "");
       formData.append("location", data.location);
       formData.append("image_url", data.image_url || "");
+      formData.append("banner_image_url", data.banner_image_url || "");
       if (selectedImageFile) {
         formData.append("image_file", selectedImageFile);
+      }
+      if (selectedBannerFile) {
+        formData.append("banner_image_file", selectedBannerFile);
       }
       formData.append("start_date", data.start_date);
       formData.append("end_date", data.end_date);
@@ -213,6 +221,43 @@ export default function CreateEventForm({ initialData = null }) {
               accept="image/*"
               onChange={(event) =>
                 setSelectedImageFile(event.target.files?.[0] || null)
+              }
+              className="mt-1 w-full p-2 border rounded-md bg-white"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Se enviar arquivo local, ele terá prioridade sobre a URL.
+            </p>
+          </div>
+
+          {/* Banner do Evento (página de detalhes) */}
+          <div className="md:col-span-2 border-t pt-4 mt-2">
+            <label className="block text-sm font-medium text-gray-700">
+              URL da Imagem de Banner (página do evento)
+            </label>
+            <input
+              {...register("banner_image_url")}
+              className="mt-1 w-full p-2 border rounded-md"
+              placeholder="https://..."
+            />
+            {errors.banner_image_url && (
+              <span className="text-red-500 text-xs">
+                {errors.banner_image_url.message}
+              </span>
+            )}
+            <p className="text-xs text-gray-500 mt-1">
+              Essa imagem aparece no topo da página de detalhes do evento.
+            </p>
+          </div>
+
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-gray-700">
+              Ou envie uma imagem de banner local
+            </label>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(event) =>
+                setSelectedBannerFile(event.target.files?.[0] || null)
               }
               className="mt-1 w-full p-2 border rounded-md bg-white"
             />

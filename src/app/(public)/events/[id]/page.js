@@ -62,9 +62,9 @@ export default async function EventDetailsPage({ params }) {
     <div className="min-h-screen bg-gray-50 pb-20">
       {/* Hero / Header (Imagem de Fundo Simulada) */}
       <div className="h-64 md:h-80 bg-slate-900 relative flex items-center justify-center overflow-hidden">
-        {event.image_url ? (
+        {event.banner_image_url || event.image_url ? (
           <Image
-            src={event.image_url}
+            src={event.banner_image_url || event.image_url}
             alt={event.title}
             fill
             className="absolute inset-0 object-cover opacity-40"

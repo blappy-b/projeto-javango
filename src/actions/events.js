@@ -21,6 +21,7 @@ const eventSchema = z.object({
   title: z.string().min(3, "O título precisa ter pelo menos 3 letras"),
   description: z.string().optional(),
   image_url: z.string().optional().refine(isValidUrl, { message: "URL de imagem inválida" }),
+  banner_image_url: z.string().optional().refine(isValidUrl, { message: "URL de imagem de banner inválida" }),
   location: z.string().min(3, "Local é obrigatório"),
   start_date: z.string(),
   end_date: z.string(),
@@ -80,6 +81,7 @@ const updateEventSchema = z.object({
   title: z.string().min(3),
   description: z.string().optional(),
   image_url: z.string().optional().refine(isValidUrl, { message: "URL de imagem inválida" }),
+  banner_image_url: z.string().optional().refine(isValidUrl, { message: "URL de imagem de banner inválida" }),
   location: z.string().min(3),
   start_date: z.string(),
   end_date: z.string(),
@@ -126,6 +128,7 @@ export async function createEventAction(prevState, formData) {
     title: formData.get("title"),
     description: formData.get("description") || undefined,
     image_url: formData.get("image_url") || undefined,
+    banner_image_url: formData.get("banner_image_url") || undefined,
     location: formData.get("location"),
     start_date: formData.get("start_date"),
     end_date: formData.get("end_date"),
@@ -226,6 +229,7 @@ export async function updateEventAction(eventId, formData) {
     title: formData.get("title"),
     description: formData.get("description"),
     image_url: formData.get("image_url") || undefined,
+    banner_image_url: formData.get("banner_image_url") || undefined,
     location: formData.get("location"),
     start_date: formData.get("start_date"),
     end_date: formData.get("end_date"),
@@ -262,6 +266,15 @@ export async function updateEventAction(eventId, formData) {
 
     if (uploadedImageUrl) {
       eventData.image_url = uploadedImageUrl;
+    }
+
+    const uploadedBannerUrl = await uploadEventImage(
+      formData.get("banner_image_file"),
+      user.id
+    );
+
+    if (uploadedBannerUrl) {
+      eventData.banner_image_url = uploadedBannerUrl;
     }
 
     // 1. Atualiza evento
