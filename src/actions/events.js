@@ -43,6 +43,21 @@ const eventSchema = z.object({
 
 const EVENT_IMAGE_BUCKET = process.env.SUPABASE_EVENT_IMAGES_BUCKET || "event-images";
 
+/**
+ * Converte datetime-local (horário local Brasil) para ISO string UTC.
+ * O input datetime-local não tem timezone, então precisamos interpretar
+ * como horário de Brasília (UTC-3) e converter para UTC.
+ * 
+ * @param {string} dateTimeLocal - String no formato "YYYY-MM-DDTHH:mm"
+ * @returns {string|null} - ISO string com timezone ou null
+ */
+function localDateTimeToISO(dateTimeLocal) {
+  if (!dateTimeLocal) return null;
+  // Append Brazil timezone offset (UTC-3) para PostgreSQL interpretar corretamente
+  // Brasil não usa mais horário de verão desde 2019
+  return `${dateTimeLocal}:00-03:00`;
+}
+
 function sanitizeFileName(fileName = "image") {
   return fileName.replace(/[^a-zA-Z0-9._-]/g, "-");
 }
@@ -148,6 +163,10 @@ export async function createEventAction(prevState, formData) {
 
   const { batches, ...eventData } = validated.data;
 
+  // Converter datas de datetime-local (horário Brasil) para ISO UTC
+  eventData.start_date = localDateTimeToISO(eventData.start_date);
+  eventData.end_date = localDateTimeToISO(eventData.end_date);
+
   try {
     const uploadedImageUrl = await uploadEventImage(
       formData.get("image_file"),
@@ -198,7 +217,7 @@ export async function createEventAction(prevState, formData) {
       service_fee_percent: Number(batch.fee_percent ?? 10),
       min_service_fee_cents: 200,
       is_active: true,
-      end_date: batch.batch_end_date ? new Date(batch.batch_end_date).toISOString() : null, // Data de expiração do lote
+      end_date: localDateTimeToISO(batch.batch_end_date), // Data de expiração do lote
     }));
 
     // 5. Inserir Lotes
@@ -267,6 +286,10 @@ export async function updateEventAction(eventId, formData) {
   }
 
   const { batches, ...eventData } = validated.data;
+
+  // Converter datas de datetime-local (horário Brasil) para ISO UTC
+  eventData.start_date = localDateTimeToISO(eventData.start_date);
+  eventData.end_date = localDateTimeToISO(eventData.end_date);
 
   try {
     const { data: existingEvent, error: existingEventError } = await supabase
@@ -364,7 +387,7 @@ export async function updateEventAction(eventId, formData) {
         service_fee_percent: b.fee_percent,
         min_service_fee_cents: 200,
         is_active: true,
-        end_date: b.batch_end_date ? new Date(b.batch_end_date).toISOString() : null, // Data de expiração do lote
+        end_date: localDateTimeToISO(b.batch_end_date), // Data de expiração do lote
       }));
 
       const { error } = await supabase
@@ -379,7 +402,7 @@ export async function updateEventAction(eventId, formData) {
     for (const batch of existingBatches) {
       const { error: updateError } = await supabase
         .from("ticket_batches")
-        .update({ end_date: batch.batch_end_date ? new Date(batch.batch_end_date).toISOString() : null })
+        .update({ end_date: localDateTimeToISO(batch.batch_end_date) })
         .eq("id", batch.dbId)
         .eq("event_id", eventId);
 
