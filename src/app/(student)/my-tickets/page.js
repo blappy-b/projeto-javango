@@ -38,7 +38,7 @@ export default async function MyTicketsPage({ searchParams }) {
     .order("purchased_at", { ascending: false });
 
   // 3. Busca Ordens Pendentes (PIX aguardando pagamento)
-  const { data: pendingOrders } = await supabase
+  const { data: allPendingOrders } = await supabase
     .from("orders")
     .select(`
       *,
@@ -50,6 +50,15 @@ export default async function MyTicketsPage({ searchParams }) {
     .eq("user_id", user.id)
     .eq("status", "pending")
     .order("created_at", { ascending: false });
+
+  // Filtra apenas ordens criadas nos últimos 5 minutos (não expiradas)
+  const EXPIRATION_MINUTES = 5;
+  const pendingOrders = allPendingOrders?.filter((order) => {
+    const createdAt = new Date(order.created_at);
+    const now = new Date();
+    const diffMinutes = (now.getTime() - createdAt.getTime()) / (1000 * 60);
+    return diffMinutes < EXPIRATION_MINUTES;
+  });
 
   // DEBUG: Log para investigar
   if (error) {
