@@ -62,14 +62,26 @@ export default async function EventDetailsPage({ params }) {
     <div className="min-h-screen bg-gray-50 pb-20">
       {/* Hero / Header (Imagem de Fundo Simulada) */}
       <div className="h-64 md:h-80 bg-slate-900 relative flex items-center justify-center overflow-hidden">
-        {event.banner_image_url || event.image_url ? (
+        {/* Imagem Mobile (visível apenas em telas pequenas) */}
+        {(event.banner_mobile_image_url || event.banner_image_url || event.image_url) && (
+          <Image
+            src={event.banner_mobile_image_url || event.banner_image_url || event.image_url}
+            alt={event.title}
+            fill
+            className="absolute inset-0 object-cover opacity-40 md:hidden"
+          />
+        )}
+        {/* Imagem Desktop (visível apenas em telas médias+) */}
+        {(event.banner_image_url || event.image_url) && (
           <Image
             src={event.banner_image_url || event.image_url}
             alt={event.title}
             fill
-            className="absolute inset-0 object-cover opacity-40"
+            className="absolute inset-0 object-cover opacity-40 hidden md:block"
           />
-        ) : (
+        )}
+        {/* Fallback quando não há imagem */}
+        {!event.banner_mobile_image_url && !event.banner_image_url && !event.image_url && (
           <div className="absolute inset-0 opacity-30 bg-[url('https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?q=80&w=1000')] bg-cover bg-center" />
         )}
         <div className="absolute inset-0 bg-linear-to-t from-gray-900 to-transparent" />
