@@ -8,6 +8,7 @@ import { createSupabaseBrowser } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import { Loader2, AlertCircle, LogIn } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 
 const loginSchema = z.object({
   email: z.string().email("Email inválido"),
@@ -73,8 +74,8 @@ export default function LoginForm() {
     <div className="w-full max-w-md p-8 space-y-6 bg-white rounded-xl shadow-lg border border-gray-100">
       <div className="text-center">
         <div className="flex justify-center mb-4">
-          <div className="bg-red-primary p-3 rounded-full">
-            <LogIn className="w-8 h-8 text-red-primary" />
+          <div className="bg-red-50 p-3 rounded-full">
+            <Image src="/mascote.png" width={32} height={32} alt="Logo" className="w-12 h-12" />
           </div>
         </div>
         <h1 className="text-2xl font-bold text-dark-gray">

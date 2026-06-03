@@ -177,7 +177,7 @@ export async function createEventAction(prevState, formData) {
       service_fee_percent: Number(batch.fee_percent ?? 10),
       min_service_fee_cents: 200,
       is_active: true,
-      end_date: batch.batch_end_date || null, // Data de expiração do lote
+      end_date: batch.batch_end_date ? new Date(batch.batch_end_date).toISOString() : null, // Data de expiração do lote
     }));
 
     // 5. Inserir Lotes
@@ -333,7 +333,7 @@ export async function updateEventAction(eventId, formData) {
         service_fee_percent: b.fee_percent,
         min_service_fee_cents: 200,
         is_active: true,
-        end_date: b.batch_end_date || null, // Data de expiração do lote
+        end_date: b.batch_end_date ? new Date(b.batch_end_date).toISOString() : null, // Data de expiração do lote
       }));
 
       const { error } = await supabase
@@ -348,7 +348,7 @@ export async function updateEventAction(eventId, formData) {
     for (const batch of existingBatches) {
       const { error: updateError } = await supabase
         .from("ticket_batches")
-        .update({ end_date: batch.batch_end_date || null })
+        .update({ end_date: batch.batch_end_date ? new Date(batch.batch_end_date).toISOString() : null })
         .eq("id", batch.dbId)
         .eq("event_id", eventId);
 

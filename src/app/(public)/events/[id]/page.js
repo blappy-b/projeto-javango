@@ -94,7 +94,7 @@ export default async function EventDetailsPage({ params }) {
             {/* Card de Informações Chave */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex flex-col md:flex-row gap-6 justify-between items-start md:items-center">
               <div className="flex gap-4">
-                <div className="w-12 h-12 rounded-lg bg-red-primary flex items-center justify-center text-red-primary shrink-0">
+                <div className="w-12 h-12 rounded-lg bg-red-100 flex items-center justify-center text-red-primary shrink-0">
                   <Calendar size={24} />
                 </div>
                 <div>
@@ -111,7 +111,7 @@ export default async function EventDetailsPage({ params }) {
               <div className="w-px h-12 bg-gray-200 hidden md:block" />
 
               <div className="flex gap-4">
-                <div className="w-12 h-12 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 shrink-0">
+                <div className="w-12 h-12 rounded-lg bg-red-100 flex items-center justify-center text-red-primary shrink-0">
                   <MapPin size={24} />
                 </div>
                 <div>
