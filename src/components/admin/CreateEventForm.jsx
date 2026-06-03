@@ -48,6 +48,18 @@ const formSchema = z.object({
   ),
 });
 
+// Helper para formatar data para datetime-local (sem conversão de timezone)
+const formatDateTimeLocal = (dateString) => {
+  if (!dateString) return "";
+  const date = new Date(dateString);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
+};
+
 export default function CreateEventForm({ initialData = null }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedImageFile, setSelectedImageFile] = useState(null);
@@ -72,10 +84,8 @@ export default function CreateEventForm({ initialData = null }) {
           banner_image_url: initialData.banner_image_url || "",
           banner_mobile_image_url: initialData.banner_mobile_image_url || "",
           location: initialData.location,
-          start_date: new Date(initialData.start_date)
-            .toISOString()
-            .slice(0, 16),
-          end_date: new Date(initialData.end_date).toISOString().slice(0, 16),
+          start_date: formatDateTimeLocal(initialData.start_date),
+          end_date: formatDateTimeLocal(initialData.end_date),
           batches: initialData.ticket_batches.map((b) => ({
             dbId: b.id,
             name: b.name,
@@ -83,7 +93,7 @@ export default function CreateEventForm({ initialData = null }) {
             quantity: b.total_quantity,
             quantity_sold: b.sold_quantity,
             fee_percent: b.service_fee_percent,
-            batch_end_date: b.end_date ? new Date(b.end_date).toISOString().slice(0, 16) : "",
+            batch_end_date: formatDateTimeLocal(b.end_date),
           })),
         }
       : {
