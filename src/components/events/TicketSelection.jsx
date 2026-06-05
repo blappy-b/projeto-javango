@@ -150,7 +150,7 @@ export default function TicketSelection({ eventId, batches }) {
                       {/* Mostra data de expiração se houver */}
                       {batch.end_date && !batchExpired && (
                         <p className="text-xs text-gray-500 mt-1">
-                          Disponível até {new Date(batch.end_date).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                          Disponível até {new Date(batch.end_date).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" })}
                         </p>
                       )}
                     </div>

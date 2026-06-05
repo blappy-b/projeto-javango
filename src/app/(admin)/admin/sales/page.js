@@ -301,7 +301,7 @@ export default async function AdminSalesPage() {
                           <span className="font-medium text-gray-800">{sale.event?.title || 'Evento removido'}</span>
                           <p className="text-xs text-gray-400">
                             {sale.event?.start_date 
-                              ? new Date(sale.event.start_date).toLocaleDateString('pt-BR')
+                              ? new Date(sale.event.start_date).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })
                               : '-'
                             }
                           </p>
@@ -349,7 +349,7 @@ export default async function AdminSalesPage() {
                       <h3 className="font-medium text-gray-800">{sale.event?.title || 'Evento removido'}</h3>
                       <p className="text-sm text-gray-500">
                         {sale.event?.start_date 
-                          ? new Date(sale.event.start_date).toLocaleDateString('pt-BR')
+                          ? new Date(sale.event.start_date).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })
                           : '-'
                         }
                       </p>

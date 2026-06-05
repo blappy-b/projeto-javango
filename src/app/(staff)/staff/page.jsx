@@ -80,6 +80,7 @@ export default function StaffPage() {
     return new Date(dateStr).toLocaleDateString("pt-BR", {
       day: "2-digit",
       month: "short",
+      timeZone: "America/Sao_Paulo",
     });
   };
 

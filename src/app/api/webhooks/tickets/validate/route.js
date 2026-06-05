@@ -33,7 +33,7 @@ export async function POST(req) {
     if (ticket.status === 'used') {
       return NextResponse.json({ 
         success: false, 
-        message: `JÁ UTILIZADO em ${new Date(ticket.validated_at).toLocaleTimeString()}`,
+        message: `JÁ UTILIZADO em ${new Date(ticket.validated_at).toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo' })}`,
         code: 'ALREADY_USED'
       }, { status: 409 });
     }

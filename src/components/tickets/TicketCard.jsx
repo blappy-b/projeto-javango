@@ -4,13 +4,15 @@ import QRCode from "react-qr-code";
 import { Calendar, MapPin, Clock, Ticket as TicketIcon } from "lucide-react";
 
 export default function TicketCard({ ticket, event }) {
-  // Formatações de data
+  // Formatações de data - sempre em horário de Brasília
   const startDate = new Date(event.start_date);
   const dateStr = startDate.toLocaleDateString('pt-BR', { 
-    day: '2-digit', month: 'long', year: 'numeric' 
+    day: '2-digit', month: 'long', year: 'numeric',
+    timeZone: 'America/Sao_Paulo'
   });
   const timeStr = startDate.toLocaleTimeString('pt-BR', { 
-    hour: '2-digit', minute: '2-digit' 
+    hour: '2-digit', minute: '2-digit',
+    timeZone: 'America/Sao_Paulo'
   });
 
   return (

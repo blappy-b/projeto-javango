@@ -45,17 +45,19 @@ export default async function EventDetailsPage({ params }) {
     (a, b) => a.price_cents - b.price_cents
   );
 
-  // Formatação de data
+  // Formatação de data - sempre em horário de Brasília
   const startDate = new Date(event.start_date);
   const formattedDate = startDate.toLocaleDateString("pt-BR", {
     weekday: "long",
     year: "numeric",
     month: "long",
     day: "numeric",
+    timeZone: "America/Sao_Paulo",
   });
   const formattedTime = startDate.toLocaleTimeString("pt-BR", {
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: "America/Sao_Paulo",
   });
 
   return (

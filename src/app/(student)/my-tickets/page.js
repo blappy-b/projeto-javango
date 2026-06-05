@@ -143,7 +143,7 @@ export default async function MyTicketsPage({ searchParams }) {
                     Aguardando confirmação do pagamento PIX
                   </p>
                   <p className="text-xs text-gray-400 mt-1">
-                    Pedido: {order.id.substring(0, 8)}... • {new Date(order.created_at).toLocaleDateString('pt-BR')}
+                    Pedido: {order.id.substring(0, 8)}... • {new Date(order.created_at).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })}
                   </p>
                 </div>
                 <div className="flex items-center gap-2">

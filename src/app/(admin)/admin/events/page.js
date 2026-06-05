@@ -178,8 +178,8 @@ function EventsTable({ events, emptyMessage, isPast = false }) {
                   
                   <td className="px-6 py-4">
                     <div className="flex flex-col">
-                      <span className={isPast ? 'text-gray-400' : ''}>{new Date(event.start_date).toLocaleDateString()}</span>
-                      <span className="text-xs text-gray-400">{new Date(event.start_date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                      <span className={isPast ? 'text-gray-400' : ''}>{new Date(event.start_date).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })}</span>
+                      <span className="text-xs text-gray-400">{new Date(event.start_date).toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit', timeZone: 'America/Sao_Paulo'})}</span>
                     </div>
                   </td>
 
@@ -259,8 +259,8 @@ function EventsCards({ events, emptyMessage, isPast = false }) {
                     <h3 className={`font-medium truncate ${isPast ? 'text-gray-500' : 'text-dark-gray'}`}>{event.title}</h3>
                     <div className="flex items-center gap-2 text-sm text-gray-500">
                       <Calendar size={12} />
-                      <span>{new Date(event.start_date).toLocaleDateString()}</span>
-                      <span className="text-xs">{new Date(event.start_date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                      <span>{new Date(event.start_date).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })}</span>
+                      <span className="text-xs">{new Date(event.start_date).toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit', timeZone: 'America/Sao_Paulo'})}</span>
                     </div>
                   </div>
                 </div>

@@ -3,9 +3,10 @@ import { Calendar, MapPin } from 'lucide-react'
 import Image from 'next/image'
 
 export default function EventCard({ event }) {
-  // Formatação de data simples
+  // Formatação de data simples - sempre em horário de Brasília
   const date = new Date(event.start_date).toLocaleDateString('pt-BR', {
-    day: '2-digit', month: 'long', hour: '2-digit', minute: '2-digit'
+    day: '2-digit', month: 'long', hour: '2-digit', minute: '2-digit',
+    timeZone: 'America/Sao_Paulo'
   })
 
   return (
@@ -23,7 +24,6 @@ export default function EventCard({ event }) {
         
         <div className="space-y-2 mb-4 flex-1">
           <div className="flex items-center text-gray-500 text-sm">
-            <Image src="/logo.png" alt="Javango" width={16} height={16} className="mr-2 rounded-sm" />
             <Calendar size={16} className="mr-2" />
             {date}
           </div>
