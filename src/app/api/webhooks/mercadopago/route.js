@@ -43,18 +43,7 @@ function getPaymentData(paymentResponse) {
   return paymentResponse?.body ?? paymentResponse;
 }
 
-async function rollbackSoldQuantities(incrementsDone) {
-  for (const increment of incrementsDone) {
-    await supabaseAdmin.rpc("decrement_ticket_sold", {
-      batch_id_input: increment.batch_id,
-      quantity_input: increment.quantity,
-    });
-  }
-}
-
 export async function POST(request) {
-  const incrementsDone = [];
-
   try {
     const body = await request.json().catch(() => null);
     const { topic, id } = extractNotificationPayload(request.url, body);
@@ -79,7 +68,7 @@ export async function POST(request) {
 
     const { data: order, error: orderError } = await supabaseAdmin
       .from("orders")
-      .select("id, event_id, user_id, status, items_snapshot")
+      .select("id, status")
       .eq("id", orderId)
       .single();
 
@@ -90,6 +79,7 @@ export async function POST(request) {
 
     const mappedOrderStatus = PAYMENT_STATUS_TO_ORDER_STATUS[payment?.status] || "pending";
     const paymentMethod = payment?.payment_method_id || payment?.payment_type_id;
+    const paymentId = String(payment?.id ?? id);
 
     // Log detalhado para debug de pagamentos PIX
     console.log(`[Webhook] Pagamento ${payment?.id}: status=${payment?.status}, método=${paymentMethod}, order=${orderId}`);
@@ -98,14 +88,15 @@ export async function POST(request) {
       // Para PIX pendente, armazenamos também o método de pagamento
       const updateData = {
         status: mappedOrderStatus,
-        mp_payment_id: String(payment?.id ?? id),
+        mp_payment_id: paymentId,
         updated_at: new Date().toISOString(),
       };
 
       const { error: updateOrderError } = await supabaseAdmin
         .from("orders")
         .update(updateData)
-        .eq("id", order.id);
+        .eq("id", order.id)
+        .neq("status", "approved");
 
       if (updateOrderError) {
         console.error("Erro ao atualizar ordem não aprovada:", updateOrderError);
@@ -128,85 +119,27 @@ export async function POST(request) {
       return NextResponse.json({ status: "already_processed" });
     }
 
-    // Verificação adicional: checar se tickets já existem para essa ordem
-    // Isso previne race condition quando múltiplos webhooks chegam simultaneamente
-    const { data: existingTickets } = await supabaseAdmin
-      .from("tickets")
-      .select("id")
-      .eq("order_id", order.id)
-      .limit(1);
-
-    if (existingTickets && existingTickets.length > 0) {
-      console.log(`[Webhook] Tickets já existem para order ${orderId} - pulando criação duplicada`);
-      // Atualiza status para approved se ainda não estiver
-      await supabaseAdmin
-        .from("orders")
-        .update({
-          status: "approved",
-          mp_payment_id: String(payment?.id ?? id),
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", order.id);
-      return NextResponse.json({ status: "already_processed_tickets_exist" });
-    }
-
-    const items = order.items_snapshot || [];
-    const ticketsToInsert = [];
-
-    for (const item of items) {
-      const { error: incrementError } = await supabaseAdmin.rpc("increment_ticket_sold", {
-        batch_id_input: item.batch_id,
-        quantity_input: item.quantity,
-      });
-
-      if (incrementError) {
-        console.error("Erro ao incrementar sold_quantity:", incrementError);
-        throw incrementError;
+    // Processamento aprovado com idempotência forte no banco (transação + lock FOR UPDATE).
+    const { data: processResult, error: processError } = await supabaseAdmin.rpc(
+      "process_approved_order_payment",
+      {
+        p_order_id: order.id,
+        p_payment_id: paymentId,
+        p_guest_name: payment?.payer?.email || "Convidado",
       }
+    );
 
-      incrementsDone.push({ batch_id: item.batch_id, quantity: item.quantity });
-
-      for (let i = 0; i < item.quantity; i++) {
-        ticketsToInsert.push({
-          order_id: order.id,
-          event_id: order.event_id,
-          batch_id: item.batch_id,
-          user_id: order.user_id,
-          status: "valid",
-          paid_price_cents: item.unit_price_cents,
-          paid_fee_cents: item.fee_cents,
-          guest_name: payment?.payer?.email || "Convidado",
-        });
-      }
+    if (processError) {
+      console.error("Erro no processamento idempotente da ordem:", processError);
+      throw processError;
     }
 
-    const { error: insertTicketsError } = await supabaseAdmin.from("tickets").insert(ticketsToInsert);
-
-    if (insertTicketsError) {
-      console.error("Erro ao inserir ingressos:", insertTicketsError);
-      throw insertTicketsError;
-    }
-
-    const { error: updateOrderError } = await supabaseAdmin
-      .from("orders")
-      .update({
-        status: "approved",
-        mp_payment_id: String(payment?.id ?? id),
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", order.id);
-
-    if (updateOrderError) {
-      console.error("Erro ao atualizar ordem aprovada:", updateOrderError);
-      throw updateOrderError;
-    }
-
-    return NextResponse.json({ status: "success", order_status: "approved" });
+    return NextResponse.json({
+      status: "success",
+      order_status: "approved",
+      process_result: processResult || "processed",
+    });
   } catch (error) {
-    if (incrementsDone.length > 0) {
-      await rollbackSoldQuantities(incrementsDone);
-    }
-
     console.error("Webhook Error:", error);
     return NextResponse.json({ error: "Internal Error" }, { status: 500 });
   }
