@@ -26,6 +26,7 @@ export default async function MyTicketsPage({ searchParams }) {
       events!inner (
         title,
         start_date,
+        end_date,
         location,
         status
       ),
@@ -34,7 +35,7 @@ export default async function MyTicketsPage({ searchParams }) {
       )
     `)
     .eq("user_id", user.id)
-    .gte("events.start_date", new Date().toISOString())
+    .gte("events.end_date", new Date().toISOString())
     .order("purchased_at", { ascending: false });
 
   // 3. Busca Ordens Pendentes (PIX aguardando pagamento)
