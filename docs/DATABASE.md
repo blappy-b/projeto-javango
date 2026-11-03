@@ -52,6 +52,7 @@ Carrinho/checkout com snapshot imutável dos itens.
 - `status text default 'pending'` (`pending`, `approved`, `rejected`)
 - `total_amount_cents integer not null`
 - `external_reference text`
+- `payment_method text` — `pix` ou `payment_type_id` do Mercado Pago (`credit_card`, `debit_card`...); define a taxa do MP exibida no painel admin
 - `items_snapshot jsonb not null`
 - `created_at timestamptz default timezone('utc', now())`
 - `updated_at timestamptz default timezone('utc', now())`
