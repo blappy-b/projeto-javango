@@ -2,24 +2,10 @@ import Link from 'next/link'
 import { createSupabaseServer } from '@/lib/supabase-server'
 import { Plus, Calendar, DollarSign, Users, MoreHorizontal, Clock, History, Percent } from 'lucide-react'
 import EventActions from '@/components/admin/EventActions'
+import { calculateFeeSplit } from '@/utils/price'
 
 // Força a página a ser dinâmica (sem cache estático), pois os dados mudam
 export const dynamic = 'force-dynamic'
-
-// Taxa do Mercado Pago (mesmo valor usado em price.js)
-const MP_RATE_PERCENT = 4.9
-
-// Calcula a taxa do MP (4,9% do total cobrado)
-function calculateFeeSplit(paidPriceCents, paidFeeCents) {
-  const basePrice = Number(paidPriceCents) || 0
-  const totalFee = Number(paidFeeCents) || 0
-  const totalCharged = basePrice + totalFee
-  
-  const mpFee = Math.round(totalCharged * MP_RATE_PERCENT / 100)
-  const serviceFee = Math.max(0, totalFee - mpFee)
-  
-  return { serviceFee, mpFee }
-}
 
 export default async function AdminEventsPage() {
   const supabase = await createSupabaseServer()
@@ -40,7 +26,10 @@ export default async function AdminEventsPage() {
         batch_id,
         paid_price_cents,
         paid_fee_cents,
-        status
+        status,
+        orders (
+          payment_method
+        )
       )
     `)
     .order('start_date', { ascending: false })
@@ -60,7 +49,7 @@ export default async function AdminEventsPage() {
       const paidFee = Number(ticket.paid_fee_cents) || 0
       const totalCharged = paidPrice + paidFee
       
-      const { serviceFee, mpFee } = calculateFeeSplit(paidPrice, paidFee)
+      const { serviceFee, mpFee } = calculateFeeSplit(paidPrice, paidFee, ticket.orders?.payment_method)
       
       return {
         basePrice: acc.basePrice + paidPrice,

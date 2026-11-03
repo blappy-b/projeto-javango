@@ -7,8 +7,8 @@ import { createClient } from "@supabase/supabase-js";
  * Este endpoint faz uma query simples no banco para prevenir que o Supabase
  * entre em modo "pause" no plano gratuito devido à inatividade.
  * 
- * Use um serviço de cron externo (UptimeRobot, cron-job.org, etc.) para
- * fazer requisições regulares a este endpoint.
+ * O Vercel Cron (configurado em vercel.json) faz uma requisição diária
+ * a este endpoint.
  */
 export async function GET(request) {
   try {

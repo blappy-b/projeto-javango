@@ -43,6 +43,12 @@ function getPaymentData(paymentResponse) {
   return paymentResponse?.body ?? paymentResponse;
 }
 
+// PIX vem com payment_type_id "bank_transfer"; nos demais o tipo identifica o
+// método (payment_method_id seria a bandeira, como "visa").
+function getPaymentMethod(payment) {
+  return payment?.payment_method_id === "pix" ? "pix" : payment?.payment_type_id || null;
+}
+
 export async function POST(request) {
   try {
     const body = await request.json().catch(() => null);
@@ -78,7 +84,7 @@ export async function POST(request) {
     }
 
     const mappedOrderStatus = PAYMENT_STATUS_TO_ORDER_STATUS[payment?.status] || "pending";
-    const paymentMethod = payment?.payment_method_id || payment?.payment_type_id;
+    const paymentMethod = getPaymentMethod(payment);
     const paymentId = String(payment?.id ?? id);
 
     // Log detalhado para debug de pagamentos PIX
@@ -89,6 +95,7 @@ export async function POST(request) {
       const updateData = {
         status: mappedOrderStatus,
         mp_payment_id: paymentId,
+        payment_method: paymentMethod,
         updated_at: new Date().toISOString(),
       };
 
@@ -126,6 +133,7 @@ export async function POST(request) {
         p_order_id: order.id,
         p_payment_id: paymentId,
         p_guest_name: payment?.payer?.email || "Convidado",
+        p_payment_method: paymentMethod,
       }
     );
 
