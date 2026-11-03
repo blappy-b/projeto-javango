@@ -1,26 +1,8 @@
 import { createSupabaseServer } from '@/lib/supabase-server'
 import { DollarSign, Users, Calendar, TrendingUp, TrendingDown, ArrowUpRight, Ticket, Percent } from 'lucide-react'
+import { calculateFeeSplit } from '@/utils/price'
 
 export const dynamic = 'force-dynamic'
-
-// Taxas do Mercado Pago (mesmo valor usado em price.js)
-const MP_RATE_PERCENT = 4.9
-const MP_FIXED_CENTS = 0
-
-// Calcula a taxa do MP (apenas percentual, sem taxa fixa)
-function calculateFeeSplit(paidPriceCents, paidFeeCents) {
-  const basePrice = Number(paidPriceCents) || 0
-  const totalFee = Number(paidFeeCents) || 0
-  const totalCharged = basePrice + totalFee
-
-  // Taxa do MP = porcentagem sobre o total cobrado (sem taxa fixa, que é por transação)
-  const mpFee = Math.round(totalCharged * MP_RATE_PERCENT / 100)
-  
-  // Taxa de serviço = o que sobra das taxas após o MP
-  const serviceFee = Math.max(0, totalFee - mpFee)
-
-  return { serviceFee, mpFee }
-}
 
 export default async function AdminSalesPage() {
   const supabase = await createSupabaseServer()
@@ -36,6 +18,9 @@ export default async function AdminSalesPage() {
       purchased_at,
       event_id,
       batch_id,
+      orders (
+        payment_method
+      ),
       events (
         id,
         title,
@@ -61,7 +46,7 @@ export default async function AdminSalesPage() {
     const paidFee = Number(ticket.paid_fee_cents) || 0
     const totalCharged = paidPrice + paidFee
     
-    const { serviceFee, mpFee } = calculateFeeSplit(paidPrice, paidFee)
+    const { serviceFee, mpFee } = calculateFeeSplit(paidPrice, paidFee, ticket.orders?.payment_method)
 
     return {
       ...ticket,
@@ -248,7 +233,7 @@ export default async function AdminSalesPage() {
         <div className="bg-gradient-to-br from-gray-500 to-gray-600 p-5 rounded-xl text-white">
           <h3 className="text-gray-200 text-xs font-medium mb-1">TAXA MERCADO PAGO</h3>
           <p className="text-2xl md:text-3xl font-bold">{formatCurrency(totalTotals.mpFee)}</p>
-          <p className="text-gray-200 text-xs mt-2">4,9% do total cobrado</p>
+          <p className="text-gray-200 text-xs mt-2">Pix 0,99% · Cartão 3,99%</p>
         </div>
 
         <div className="bg-gradient-to-br from-blue-500 to-blue-600 p-5 rounded-xl text-white">
@@ -262,8 +247,9 @@ export default async function AdminSalesPage() {
       <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 mb-8">
         <h3 className="text-sm font-semibold text-blue-800 mb-2">Como funciona o cálculo?</h3>
         <div className="text-xs text-blue-700 space-y-1">
-          <p><strong>Receita Líquida</strong> = Total Cobrado - Taxa MP (4,9%)</p>
-          <p><strong>Taxa de Serviço</strong> = Parte da receita que você configurou por lote</p>
+          <p><strong>Receita Líquida</strong> = Total Cobrado - Taxa MP (Pix 0,99% / Cartão 3,99%)</p>
+          <p><strong>Taxa de Serviço</strong> = Total de taxas cobradas do comprador - Taxa MP</p>
+          <p>Vendas sem método de pagamento registrado são calculadas com 4,9%.</p>
         </div>
       </div>
 

@@ -7,9 +7,35 @@ export const formatCurrency = (cents) => {
 
 // CONFIGURAÇÃO DE TAXAS DO MERCADO PAGO
 // Verifique no seu painel do MP em "Custos".
-// Taxa atual: 4,9% (sem taxa fixa).
-const MP_RATE_PERCENT = 4.9; 
-const MP_FIXED_CENTS = 0; 
+// Markup do checkout: 4,9% (sem taxa fixa). O método só é conhecido depois do
+// redirecionamento ao MP, então o preço não varia com ele.
+const MP_RATE_PERCENT = 4.9;
+const MP_FIXED_CENTS = 0;
+
+// Taxa efetivamente descontada pelo MP, por método de pagamento.
+// Métodos sem taxa definida (e vendas sem método salvo) usam MP_RATE_PERCENT.
+const MP_RATE_BY_METHOD = {
+  pix: 0.99,
+  credit_card: 3.99,
+  debit_card: 3.99,
+  prepaid_card: 3.99,
+};
+
+/**
+ * Separa as taxas de um ingresso vendido (usado no painel admin).
+ * A taxa do MP incide sobre o total cobrado; o restante é taxa de serviço.
+ */
+export const calculateFeeSplit = (paidPriceCents, paidFeeCents, paymentMethod) => {
+  const basePrice = Number(paidPriceCents) || 0;
+  const totalFee = Number(paidFeeCents) || 0;
+  const totalCharged = basePrice + totalFee;
+
+  const ratePercent = MP_RATE_BY_METHOD[paymentMethod] ?? MP_RATE_PERCENT;
+  const mpFee = Math.round((totalCharged * ratePercent) / 100);
+  const serviceFee = Math.max(0, totalFee - mpFee);
+
+  return { serviceFee, mpFee };
+};
 
 /**
  * Calcula o preço final para garantir "Custo Zero" real.

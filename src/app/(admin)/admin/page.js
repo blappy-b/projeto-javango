@@ -1,22 +1,8 @@
 import { createSupabaseServer } from '@/lib/supabase-server'
 import { DollarSign, Users, Calendar, Percent } from 'lucide-react'
+import { calculateFeeSplit } from '@/utils/price'
 
 export const dynamic = 'force-dynamic'
-
-// Taxa do Mercado Pago (mesmo valor usado em price.js)
-const MP_RATE_PERCENT = 4.9
-
-// Calcula a taxa do MP (4,9% do total cobrado)
-function calculateFeeSplit(paidPriceCents, paidFeeCents) {
-  const basePrice = Number(paidPriceCents) || 0
-  const totalFee = Number(paidFeeCents) || 0
-  const totalCharged = basePrice + totalFee
-  
-  const mpFee = Math.round(totalCharged * MP_RATE_PERCENT / 100)
-  const serviceFee = Math.max(0, totalFee - mpFee)
-  
-  return { serviceFee, mpFee }
-}
 
 export default async function AdminDashboard() {
   const supabase = await createSupabaseServer()
@@ -31,7 +17,10 @@ export default async function AdminDashboard() {
       status,
       purchased_at,
       event_id,
-      batch_id
+      batch_id,
+      orders (
+        payment_method
+      )
     `)
     .in('status', ['valid', 'used'])
 
@@ -47,7 +36,7 @@ export default async function AdminDashboard() {
     const paidFee = Number(ticket.paid_fee_cents) || 0
     const totalCharged = paidPrice + paidFee
     
-    const { serviceFee, mpFee } = calculateFeeSplit(paidPrice, paidFee)
+    const { serviceFee, mpFee } = calculateFeeSplit(paidPrice, paidFee, ticket.orders?.payment_method)
     
     return {
       ...ticket,
