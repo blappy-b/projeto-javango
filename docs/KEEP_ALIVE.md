@@ -27,7 +27,22 @@ Foi criado um endpoint de health check (`/api/health`) que faz uma query simples
 
 ## Configuração do Cron
 
-### Opção 1: UptimeRobot (Recomendado)
+### Configuração atual: Vercel Cron
+
+**Arquivo:** `vercel.json`  
+**Agendamento:** `0 12 * * *` (uma vez por dia, entre 12:00 e 12:59 UTC)
+
+O Vercel faz um `GET` em `/api/health` no deployment de produção. O recurso está incluído no plano Hobby (gratuito), que permite no máximo uma execução por dia, com precisão de ±59 minutos. Isso é suficiente para evitar a pausa de 7 dias do Supabase.
+
+**Onde acompanhar:** no painel do projeto na Vercel, em **Settings → Cron Jobs**. O botão **Run** permite executar manualmente e **View Logs** mostra as execuções.
+
+**Atenção:** o cron só roda em produção e não restaura um projeto já pausado. Se isso acontecer, clique em "Resume" no dashboard do Supabase.
+
+---
+
+## Alternativas
+
+### Opção 1: UptimeRobot
 
 **Serviço:** [https://uptimerobot.com](https://uptimerobot.com) - Gratuito  
 **Limite:** 50 monitores, check a cada 5 minutos
@@ -105,18 +120,20 @@ jobs:
 **Desvantagens:**
 - Requer repositório no GitHub
 - Menos frequente (máximo recomendado: a cada 5-6 horas)
+- Em repositórios públicos, o GitHub desativa o agendamento após 60 dias sem atividade no repositório (`disabled_inactivity`). Foi o que aconteceu neste projeto em 27/08/2026, por isso o agendamento foi movido para o Vercel Cron. O workflow continua no repositório apenas para execução manual.
 
 ---
 
 ## Recomendação
 
-**Para a maioria dos casos:** Use **UptimeRobot** ou **Cron-job.org**
-- ✅ Fácil de configurar
-- ✅ Não depende do código estar no GitHub
-- ✅ Pings mais frequentes
-- ✅ Alertas por email
+**Use o Vercel Cron**, já configurado neste projeto:
+- ✅ Gratuito no plano Hobby
+- ✅ Não depende de atividade no repositório
+- ✅ Não exige conta em outro serviço
 
-**Frequência recomendada:** Entre 5 a 30 minutos é suficiente para manter o Supabase ativo.
+**Frequência recomendada:** Uma vez por dia é suficiente para manter o Supabase ativo.
+
+Se precisar de alertas por email quando a aplicação cair, considere também o UptimeRobot.
 
 ---
 
@@ -140,7 +157,7 @@ Após fazer deploy (Vercel, por exemplo):
 curl https://seu-app.vercel.app/api/health
 ```
 
-Configure o serviço de cron com essa URL de produção.
+O Vercel Cron passa a valer automaticamente no deploy de produção. Serviços externos devem ser configurados com essa URL.
 
 ---
 
@@ -151,7 +168,7 @@ O endpoint `/api/health` retorna:
 - **Status 503** quando há problema com o banco
 - **Status 500** para erros inesperados
 
-O serviço de cron deve alertar você caso receba status diferente de 200.
+O Vercel Cron não tenta novamente quando a execução falha. Verifique os logs em **Settings → Cron Jobs**.
 
 ---
 
