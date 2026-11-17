@@ -12,13 +12,15 @@ export const formatCurrency = (cents) => {
 const MP_RATE_PERCENT = 4.99;
 const MP_FIXED_CENTS = 0;
 
-// Taxa efetivamente descontada pelo MP, por método de pagamento.
+// Taxa efetivamente descontada pelo MP, por método de pagamento, com
+// recebimento "na hora" (tabela do Checkout do MP: Pix 0,99%, cartão 4,98%).
 // Métodos sem taxa definida (e vendas sem método salvo) usam MP_RATE_PERCENT.
+const MP_CARD_RATE_PERCENT = 4.98;
 const MP_RATE_BY_METHOD = {
   pix: 0.99,
-  credit_card: 3.99,
-  debit_card: 3.99,
-  prepaid_card: 3.99,
+  credit_card: MP_CARD_RATE_PERCENT,
+  debit_card: MP_CARD_RATE_PERCENT,
+  prepaid_card: MP_CARD_RATE_PERCENT,
 };
 
 /**
