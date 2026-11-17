@@ -32,7 +32,6 @@ const eventSchema = z.object({
         name: z.string().min(1, "Nome do lote é obrigatório"),
         price: z.coerce.number().min(0, "O preço não pode ser negativo"),
         quantity: z.coerce.number().min(1, "Quantidade mínima é 1"),
-        fee_percent: z.coerce.number().min(0).default(10),
         batch_end_date: z.string().optional(), // Data de expiração do lote
       })
     )
@@ -109,7 +108,6 @@ const updateEventSchema = z.object({
       name: z.string().min(1),
       price: z.coerce.number().min(0),
       quantity: z.coerce.number().min(1),
-      fee_percent: z.coerce.number().min(0).default(10),
       quantity_sold: z.coerce.number().optional().default(0),
       batch_end_date: z.string().optional(), // Data de expiração do lote
     })
@@ -214,8 +212,9 @@ export async function createEventAction(prevState, formData) {
       name: batch.name,
       price_cents: Math.round(Number(batch.price) * 100),
       total_quantity: Number(batch.quantity),
-      service_fee_percent: Number(batch.fee_percent ?? 10),
-      min_service_fee_cents: 200,
+      // Sem taxa de serviço: o aluno paga só o ingresso + taxa do Mercado Pago.
+      service_fee_percent: 0,
+      min_service_fee_cents: 0,
       is_active: true,
       end_date: localDateTimeToISO(batch.batch_end_date), // Data de expiração do lote
     }));
@@ -384,8 +383,9 @@ export async function updateEventAction(eventId, formData) {
         name: b.name,
         price_cents: Math.round(b.price * 100),
         total_quantity: b.quantity,
-        service_fee_percent: b.fee_percent,
-        min_service_fee_cents: 200,
+        // Sem taxa de serviço: o aluno paga só o ingresso + taxa do Mercado Pago.
+        service_fee_percent: 0,
+        min_service_fee_cents: 0,
         is_active: true,
         end_date: localDateTimeToISO(b.batch_end_date), // Data de expiração do lote
       }));

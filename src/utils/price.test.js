@@ -49,3 +49,14 @@ test('calculateFeeSplit usa 4,9% sem método salvo ou com método sem taxa defin
   assert.deepEqual(calculateFeeSplit(10000, 1567, undefined), expected);
   assert.deepEqual(calculateFeeSplit(10000, 1567, 'account_money'), expected);
 });
+
+test('calculateFinalPrice sem taxa de serviço cobra só o ingresso + taxa do MP', () => {
+  const result = calculateFinalPrice({
+    price_cents: 2500,
+    service_fee_percent: 0,
+    min_service_fee_cents: 0,
+  });
+
+  assert.equal(result.schoolFee, 0);
+  assert.equal(result.total, 2629);
+});
