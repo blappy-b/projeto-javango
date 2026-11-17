@@ -42,7 +42,6 @@ const formSchema = z.object({
       price: z.coerce.number().min(0),
       quantity: z.coerce.number().min(1),
       quantity_sold: z.coerce.number().optional().default(0),
-      fee_percent: z.coerce.number().min(0),
       batch_end_date: z.string().optional(), // Data de expiração do lote
     })
   ),
@@ -92,7 +91,6 @@ export default function CreateEventForm({ initialData = null }) {
             price: b.price_cents / 100,
             quantity: b.total_quantity,
             quantity_sold: b.sold_quantity,
-            fee_percent: b.service_fee_percent,
             batch_end_date: formatDateTimeLocal(b.end_date),
           })),
         }
@@ -106,7 +104,6 @@ export default function CreateEventForm({ initialData = null }) {
               name: "Ingresso Padrão",
               price: 0,
               quantity: 50,
-              fee_percent: 10,
               batch_end_date: "",
             },
           ],
@@ -383,8 +380,7 @@ export default function CreateEventForm({ initialData = null }) {
                   name: "",
                   price: 0,
                   quantity: 1,
-                  fee_percent: 10,
-                  quantity_sold: 0,
+                      quantity_sold: 0,
                   batch_end_date: "",
                 })
               }
@@ -476,21 +472,6 @@ export default function CreateEventForm({ initialData = null }) {
                   </div>
                 )}
 
-                <div className="w-full md:w-16">
-                  <label className="text-xs text-gray-500 font-medium">
-                    Taxa (%)
-                  </label>
-                  <input
-                    type="number"
-                    {...register(`batches.${index}.fee_percent`)}
-                    readOnly={isExistingBatch}
-                    className={`w-full p-2 border rounded-md text-sm ${
-                      isExistingBatch
-                        ? "bg-gray-200 text-gray-500 cursor-not-allowed"
-                        : ""
-                    }`}
-                  />
-                </div>
 
                 <div className="w-full md:w-44">
                   <label className="text-xs text-gray-500 font-medium">
