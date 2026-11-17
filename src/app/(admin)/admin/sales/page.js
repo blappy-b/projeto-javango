@@ -233,7 +233,7 @@ export default async function AdminSalesPage() {
         <div className="bg-gradient-to-br from-gray-500 to-gray-600 p-5 rounded-xl text-white">
           <h3 className="text-gray-200 text-xs font-medium mb-1">TAXA MERCADO PAGO</h3>
           <p className="text-2xl md:text-3xl font-bold">{formatCurrency(totalTotals.mpFee)}</p>
-          <p className="text-gray-200 text-xs mt-2">Pix 0,99% · Cartão 3,99%</p>
+          <p className="text-gray-200 text-xs mt-2">Pix 0,99% · Cartão 4,98%</p>
         </div>
 
         <div className="bg-gradient-to-br from-blue-500 to-blue-600 p-5 rounded-xl text-white">
@@ -247,7 +247,7 @@ export default async function AdminSalesPage() {
       <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 mb-8">
         <h3 className="text-sm font-semibold text-blue-800 mb-2">Como funciona o cálculo?</h3>
         <div className="text-xs text-blue-700 space-y-1">
-          <p><strong>Receita Líquida</strong> = Total Cobrado - Taxa MP (Pix 0,99% / Cartão 3,99%)</p>
+          <p><strong>Receita Líquida</strong> = Total Cobrado - Taxa MP (Pix 0,99% / Cartão 4,98%)</p>
           <p><strong>Taxa de Serviço</strong> = Total de taxas cobradas do comprador - Taxa MP</p>
           <p>Vendas sem método de pagamento registrado são calculadas com 4,99%.</p>
         </div>

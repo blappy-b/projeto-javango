@@ -34,8 +34,8 @@ test('calculateFeeSplit aplica 0,99% no pix', () => {
   assert.deepEqual(calculateFeeSplit(10000, 1567, 'pix'), { mpFee: 115, serviceFee: 1452 });
 });
 
-test('calculateFeeSplit aplica 3,99% em cartão', () => {
-  const expected = { mpFee: 462, serviceFee: 1105 };
+test('calculateFeeSplit aplica 4,98% em cartão', () => {
+  const expected = { mpFee: 576, serviceFee: 991 };
 
   assert.deepEqual(calculateFeeSplit(10000, 1567, 'credit_card'), expected);
   assert.deepEqual(calculateFeeSplit(10000, 1567, 'debit_card'), expected);
