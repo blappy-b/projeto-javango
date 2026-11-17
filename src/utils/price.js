@@ -7,9 +7,9 @@ export const formatCurrency = (cents) => {
 
 // CONFIGURAÇÃO DE TAXAS DO MERCADO PAGO
 // Verifique no seu painel do MP em "Custos".
-// Markup do checkout: 4,9% (sem taxa fixa). O método só é conhecido depois do
+// Markup do checkout: 4,99% (sem taxa fixa). O método só é conhecido depois do
 // redirecionamento ao MP, então o preço não varia com ele.
-const MP_RATE_PERCENT = 4.9;
+const MP_RATE_PERCENT = 4.99;
 const MP_FIXED_CENTS = 0;
 
 // Taxa efetivamente descontada pelo MP, por método de pagamento.
@@ -37,6 +37,18 @@ export const calculateFeeSplit = (paidPriceCents, paidFeeCents, paymentMethod) =
   return { serviceFee, mpFee };
 };
 
+// Taxa do MP sobre um valor cobrado, no pior caso (arredondada para cima).
+// O "- 1e-9" evita que erros de ponto flutuante (ex.: 99.00000000001) virem 1 centavo a mais.
+const worstCaseMpFee = (totalCents) =>
+  Math.ceil((totalCents * MP_RATE_PERCENT) / 100 - 1e-9) + MP_FIXED_CENTS;
+
+// Menor total que garante que `netCents` caia na conta depois da taxa do MP.
+const grossUpForMpFee = (netCents) => {
+  let total = Math.ceil((netCents + MP_FIXED_CENTS) / (1 - MP_RATE_PERCENT / 100) - 1e-9);
+  while (total - worstCaseMpFee(total) < netCents) total += 1;
+  return total;
+};
+
 /**
  * Calcula o preço final para garantir "Custo Zero" real.
  * O Aluno paga todas as taxas (Escola + Mercado Pago).
@@ -59,15 +71,10 @@ export const calculateFinalPrice = (batch) => {
   const netDesiredAmount = basePrice + schoolFee;
 
   // 2. Aplica o Markup do Mercado Pago (Cálculo Reverso)
-  // Fórmula: (ValorDesejado + CustoFixo) / (1 - Taxa%)
-  
-  const mpRateDecimal = MP_RATE_PERCENT / 100;
-  
-  // O divisor nunca pode ser 0 ou negativo
-  const divisor = 1 - mpRateDecimal; 
-  
-  // Cálculo do preço final bruto que será cobrado no cartão do aluno
-  const finalPriceTotal = Math.round((netDesiredAmount + MP_FIXED_CENTS) / divisor);
+  // Fórmula: (ValorDesejado + CustoFixo) / (1 - Taxa%), sempre arredondando
+  // a favor da escola: o total é o MENOR valor em centavos em que, mesmo que o
+  // MP arredonde a taxa dele para cima, o líquido não fica abaixo do desejado.
+  const finalPriceTotal = grossUpForMpFee(netDesiredAmount);
 
   // Derivações para exibição
   const totalFee = finalPriceTotal - basePrice; // Tudo que não é ingresso base (Taxa Escola + Taxa MP)

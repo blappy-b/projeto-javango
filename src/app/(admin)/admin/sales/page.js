@@ -249,7 +249,7 @@ export default async function AdminSalesPage() {
         <div className="text-xs text-blue-700 space-y-1">
           <p><strong>Receita Líquida</strong> = Total Cobrado - Taxa MP (Pix 0,99% / Cartão 3,99%)</p>
           <p><strong>Taxa de Serviço</strong> = Total de taxas cobradas do comprador - Taxa MP</p>
-          <p>Vendas sem método de pagamento registrado são calculadas com 4,9%.</p>
+          <p>Vendas sem método de pagamento registrado são calculadas com 4,99%.</p>
         </div>
       </div>
 
