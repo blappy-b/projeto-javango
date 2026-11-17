@@ -42,21 +42,30 @@ test('calculateFeeSplit aplica 3,99% em cartão', () => {
   assert.deepEqual(calculateFeeSplit(10000, 1567, 'prepaid_card'), expected);
 });
 
-test('calculateFeeSplit usa 4,9% sem método salvo ou com método sem taxa definida', () => {
-  const expected = { mpFee: 567, serviceFee: 1000 };
+test('calculateFeeSplit usa 4,99% sem método salvo ou com método sem taxa definida', () => {
+  const expected = { mpFee: 577, serviceFee: 990 };
 
   assert.deepEqual(calculateFeeSplit(10000, 1567, null), expected);
   assert.deepEqual(calculateFeeSplit(10000, 1567, undefined), expected);
   assert.deepEqual(calculateFeeSplit(10000, 1567, 'account_money'), expected);
 });
 
-test('calculateFinalPrice sem taxa de serviço cobra só o ingresso + taxa do MP', () => {
-  const result = calculateFinalPrice({
-    price_cents: 2500,
-    service_fee_percent: 0,
-    min_service_fee_cents: 0,
-  });
 
-  assert.equal(result.schoolFee, 0);
-  assert.equal(result.total, 2629);
+test('calculateFinalPrice: ingresso de R$ 25 sem taxa garante R$ 25 líquidos com 4,99% do MP', () => {
+  const result = calculateFinalPrice({ price_cents: 2500, service_fee_percent: 0, min_service_fee_cents: 0 });
+
+  assert.equal(result.total, 2632);
+  // Mesmo com a taxa do MP arredondada para cima (R$ 1,32), caem R$ 25,00.
+  assert.equal(result.total - Math.ceil((result.total * 4.99) / 100), 2500);
+});
+
+test('calculateFinalPrice nunca deixa o líquido abaixo do valor do ingresso', () => {
+  for (let price = 100; price <= 50000; price += 37) {
+    const { total } = calculateFinalPrice({ price_cents: price });
+    const mpFee = Math.ceil((total * 4.99) / 100 - 1e-9);
+    assert.ok(total - mpFee >= price, `preço ${price}: total ${total}, líquido ${total - mpFee}`);
+    // E não cobra 1 centavo a mais do que o necessário.
+    const prev = total - 1;
+    assert.ok(prev - Math.ceil((prev * 4.99) / 100 - 1e-9) < price, `preço ${price}: total ${total} poderia ser menor`);
+  }
 });
