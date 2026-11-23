@@ -67,7 +67,10 @@ export async function proxy(request) {
     path === '/' ||
     path.startsWith('/events') ||
     path.startsWith('/login') || 
-    path.startsWith('/register') || 
+    path.startsWith('/register') ||
+    path.startsWith('/esqueci-senha') ||
+    path.startsWith('/redefinir-senha') || // A própria página valida a sessão de recuperação
+    path.startsWith('/auth/confirm') || // Callback do link enviado por e-mail
     path.startsWith('/api/webhooks') ||
     path.startsWith('/api/health') || // Health check para manter Supabase ativo
     path.startsWith('/_next') || // Arquivos internos do Next

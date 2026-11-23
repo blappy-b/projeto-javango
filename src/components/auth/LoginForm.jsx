@@ -117,6 +117,14 @@ export default function LoginForm() {
               {errors.password.message}
             </p>
           )}
+          <div className="text-right mt-1">
+            <Link
+              href="/esqueci-senha"
+              className="text-sm text-red-primary hover:underline"
+            >
+              Esqueci minha senha
+            </Link>
+          </div>
         </div>
 
         {serverError && (
